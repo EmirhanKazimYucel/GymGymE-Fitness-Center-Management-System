@@ -1,0 +1,187 @@
+@{
+    ViewData["Title"] = "Admin Paneli";
+}
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Paneli</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <style>
+        body {
+            margin:0;
+            font-family:'Inter', sans-serif;
+            background:#101214;
+            color:white;
+            display:flex;
+            min-height:100vh;
+        }
+        .admin-sidebar {
+            width:280px;
+            background:#15181c;
+            padding:32px;
+            display:flex;
+            flex-direction:column;
+            gap:24px;
+        }
+        .admin-main {
+            flex:1;
+            padding:40px;
+        }
+        .admin-card {
+            background:#1f2329;
+            border-radius:20px;
+            padding:24px;
+            margin-bottom:24px;
+        }
+        .tag {
+            display:inline-block;
+            padding:6px 14px;
+            border-radius:999px;
+        .admin-grid {
+            display:grid;
+            grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));
+            gap:24px;
+        }
+        .admin-table {
+            width:100%;
+            border-collapse:separate;
+            border-spacing:0;
+            margin-top:16px;
+        }
+        .admin-table th,
+        .admin-table td {
+            padding:12px;
+            border-bottom:1px solid rgba(255,255,255,0.08);
+            text-align:left;
+            font-size:14px;
+        }
+        .pill {
+            display:inline-flex;
+            padding:4px 10px;
+            border-radius:12px;
+            background:rgba(154,215,52,0.15);
+            color:#9AD734;
+            font-size:12px;
+            margin-right:6px;
+        }
+        .cta-btn {
+            border:none;
+            background:#9AD734;
+            color:#101214;
+            padding:10px 18px;
+            border-radius:12px;
+            font-weight:600;
+            cursor:pointer;
+        }
+            background:#222831;
+            font-size:12px;
+            color:#9AD734;
+            margin-left:8px;
+        }
+    </style>
+</head>
+<body>
+    <aside class="admin-sidebar">
+        <h2>Yönetici</h2>
+        <div>
+            <div>Hoş geldiniz</div>
+            <strong>Admin Kullanıcısı</strong>
+        </div>
+        <nav>
+            <p>Menü (yakında)</p>
+        </nav>
+    </aside>
+    <main class="admin-main">
+        @if (TempData["LoginMessage"] is string loginMessage)
+        {
+            <div class="admin-card">
+                <strong>@loginMessage</strong>
+            </div>
+        }
+        <div class="admin-card">
+            <h2>Panel Özeti <span class="tag">Beta</span></h2>
+            <p>Bu alan yalnızca yöneticilere özeldir. Gelecekte kullanıcı yönetimi, içerik onayı ve raporlar burada yer alacak.</p>
+        </div>
+        <div class="admin-grid">
+            <section class="admin-card">
+                <h3>Salon Çalışma Saatleri</h3>
+                <p>Haftanın her günü için açılış/ kapanış saatlerini tanımlayın, resmi tatil istisnalarını planlayın.</p>
+                <ul>
+                    <li>Hafta içi: 07:00 - 23:00</li>
+                    <li>Hafta sonu: 08:00 - 21:00</li>
+                </ul>
+                <button class="cta-btn">Saatleri Düzenle</button>
+            </section>
+            <section class="admin-card">
+                <h3>Hizmet Tanımları</h3>
+                <p>Her hizmet için süre, ücret ve kapasite bilgilerini tutun.</p>
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Tür</th>
+                            <th>Süre</th>
+                            <th>Ücret</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Fitness (PT)</td>
+                            <td>60 dk</td>
+                            <td>₺600</td>
+                        </tr>
+                        <tr>
+                            <td>Yoga Grup</td>
+                            <td>45 dk</td>
+                            <td>₺280</td>
+                        </tr>
+                        <tr>
+                            <td>Pilates Reformer</td>
+                            <td>55 dk</td>
+                            <td>₺520</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+            <section class="admin-card">
+                <h3>Antrenör Kaydı</h3>
+                <p>Uzmanlık alanlarını ve sundukları hizmetleri ekleyin.</p>
+                <div>
+                    <strong>Mert Kaya</strong>
+                    <div>
+                        <span class="pill">Kas Geliştirme</span>
+                        <span class="pill">Kilo Verme</span>
+                    </div>
+                    <small>Hizmetler: Fitness PT, HIIT</small>
+                </div>
+                <hr />
+                <div>
+                    <strong>Selin Ar</strong>
+                    <div>
+                        <span class="pill">Yoga</span>
+                        <span class="pill">Esneklik</span>
+                    </div>
+                    <small>Hizmetler: Yoga Grup, Meditasyon</small>
+                </div>
+                <button class="cta-btn" style="margin-top:16px;">Yeni Antrenör Ekle</button>
+            </section>
+            <section class="admin-card">
+                <h3>Müsaitlik Planlayıcı</h3>
+                <p>Her antrenör için zaman blokları oluşturup üyelerin rezervasyon yapacağı boşlukları açın.</p>
+                <ul>
+                    <li>Mert · Pazartesi 10:00-14:00 (5 slot)</li>
+                    <li>Selin · Çarşamba 18:00-21:00 (3 slot)</li>
+                    <li>Can · Cumartesi 09:00-13:00 (4 slot)</li>
+                </ul>
+                <button class="cta-btn">Yeni Slot Oluştur</button>
+            </section>
+        </div>
+    </main>
+</body>
+</html>

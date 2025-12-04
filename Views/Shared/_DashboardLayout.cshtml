@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - WebProje</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+</head>
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+}
+
+<body class="dashboard-body">
+    <div class="dashboard-shell">
+        <aside class="dashboard-sidebar">
+            <div class="brand-circle">V</div>
+            <nav class="sidebar-nav">
+                <a class="sidebar-btn @(currentController == "Dashboard" ? "active" : string.Empty)" asp-controller="Dashboard" asp-action="Index" title="Panel">
+                    <span class="dot"></span>
+                </a>
+                <a class="sidebar-btn @(currentController == "Appointment" ? "active" : string.Empty)" asp-controller="Appointment" asp-action="Book" title="Randevu">
+                    <span class="icon">📅</span>
+                </a>
+                <a class="sidebar-btn" href="#" title="Programlar">
+                    <span class="icon">⚡</span>
+                </a>
+                <a class="sidebar-btn" href="#" title="Egzersizler">
+                    <span class="icon">🧘</span>
+                </a>
+                <a class="sidebar-btn" href="#" title="Ayarlar">
+                    <span class="icon">⚙️</span>
+                </a>
+            </nav>
+        </aside>
+        <main class="dashboard-main">
+            @RenderBody()
+        </main>
+    </div>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

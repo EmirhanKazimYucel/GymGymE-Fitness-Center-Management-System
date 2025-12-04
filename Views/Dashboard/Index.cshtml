@@ -1,0 +1,149 @@
+@{
+    ViewData["Title"] = "Kullanıcı Paneli";
+}
+
+@{
+    Layout = "_DashboardLayout";
+}
+
+<div class="dashboard-grid">
+    @if (TempData["AppointmentMessage"] is string appointmentInfo)
+    {
+        <section class="appointment-card full-width">
+            <div>
+                <p class="stat-label">Son randevu</p>
+                <h2>@appointmentInfo</h2>
+            </div>
+            <a class="action-btn appointment-btn" asp-controller="Appointment" asp-action="Book">Yeni Randevu Al</a>
+        </section>
+    }
+
+    <section class="appointment-card full-width">
+        <div>
+            <p class="stat-label">Hazır mısınız?</p>
+            <h2>Koçunuzla yeni bir seans planlayın</h2>
+            <p>Programınıza uygun tarihi ve saat dilimini seçin, biz geri kalanını hallederiz.</p>
+        </div>
+        <a class="action-btn appointment-btn" asp-controller="Appointment" asp-action="Book">Randevu Al</a>
+    </section>
+
+    <div class="full-width">
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-label">Su tüketimi</div>
+                <div class="stat-value">1.2 L</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Kalori</div>
+                <div class="stat-value">2.54 kCal</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Kalp ritmi</div>
+                <div class="stat-value">124 bpm</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Uyku</div>
+                <div class="stat-value">13 saat</div>
+            </div>
+        </div>
+    </div>
+
+    <section class="workout-card">
+        <header>
+            <h2>Antrenman Aktivitesi</h2>
+            @if (TempData["LoginMessage"] is string loginMessage)
+            {
+                <small>@loginMessage</small>
+            }
+        </header>
+        <div class="workout-graph"></div>
+    </section>
+
+    <section class="progress-card">
+        <header>
+            <h2>İlerleme</h2>
+        </header>
+        <div class="progress-grid">
+            <div class="progress-item">
+                <strong>56 km</strong>
+                <span>Haftalık mesafe</span>
+            </div>
+            <div class="progress-item">
+                <strong>236 km</strong>
+                <span>Toplam mesafe</span>
+            </div>
+            <div class="progress-item">
+                <strong>10 saat</strong>
+                <span>Kardio süresi</span>
+            </div>
+        </div>
+        <button class="action-btn btn-upgrade">Programı güncelle</button>
+    </section>
+
+    <section class="subscription-card">
+        <h3>Abonelik</h3>
+        <p>Standart · Aylık</p>
+        <button class="action-btn btn-upgrade">Pro'ya yükselt</button>
+    </section>
+
+    <section class="payment-card">
+        <div class="payment-row">
+            <div>
+                <small>Ödeme</small>
+                <div>22 Aralık 2025</div>
+            </div>
+            <button class="action-btn">Şimdi Öde</button>
+        </div>
+        <div class="payment-row">
+            <div>
+                <small>Varsayılan kart</small>
+                <div>•••• 0018</div>
+            </div>
+            <button class="action-btn">Değiştir</button>
+        </div>
+    </section>
+
+    <section class="offline-card">
+        <h3>Offline Egzersizler</h3>
+        <p>Kardio · Esneme · Single-leg</p>
+    </section>
+
+    <section class="attendance-card">
+        <h3>Katılım</h3>
+        <div class="attendance-grid">
+            <span>S</span>
+            <span>M</span>
+            <span class="active">T</span>
+            <span>W</span>
+            <span>T</span>
+            <span>F</span>
+            <span>S</span>
+        </div>
+    </section>
+
+    <section class="video-card">
+        <h3>Video Aktivitesi</h3>
+        <p>%78 tamamlandı</p>
+        <div class="video-progress"></div>
+    </section>
+
+    <section class="trending-card">
+        <h3>Trend Egzersizler</h3>
+        <div class="trending-list">
+            <div class="trending-item">
+                <div class="trending-thumb"></div>
+                <div>
+                    <strong>Cardio Boost</strong>
+                    <div class="stat-label">12M izleme</div>
+                </div>
+            </div>
+            <div class="trending-item">
+                <div class="trending-thumb"></div>
+                <div>
+                    <strong>Single-leg Stand</strong>
+                    <div class="stat-label">8M izleme</div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
