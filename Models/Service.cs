@@ -1,22 +1,22 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebProje.Models;
 
-public class Coach
+public class Service
 {
     public int Id { get; set; }
 
     [Required, MaxLength(128)]
-    public string FullName { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
 
     [MaxLength(256)]
-    public string? ExpertiseTags { get; set; }
+    public string? Description { get; set; }
 
-    [MaxLength(256)]
-    public string? ServicesOffered { get; set; }
+    public int? DurationMinutes { get; set; }
 
-    [MaxLength(512)]
-    public string? Bio { get; set; }
+    [Column(TypeName = "numeric(10,2)")]
+    public decimal? Price { get; set; }
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 

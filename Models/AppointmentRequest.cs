@@ -24,6 +24,9 @@ public class AppointmentRequest
     [Required, MaxLength(64)]
     public string Coach { get; set; } = string.Empty;
 
+    [Required, MaxLength(128)]
+    public string ServiceName { get; set; } = string.Empty;
+
     [MaxLength(256)]
     public string? Notes { get; set; }
 

@@ -45,26 +45,80 @@ public class AppointmentController : Controller
             return RedirectToLogin();
         }
 
-        var coachNames = await GetCoachNamesAsync();
-        model.AvailableCoaches = coachNames;
-        model.TimeSlots = TimeSlots;
-        model.UserFullName = BuildUserDisplayName(user);
-        model.UserEmail = user.Email;
-        model.UserPhone = user.PhoneNumber;
+        await PopulateBookingModelAsync(model, user);
 
-        if (!coachNames.Any())
+        if (!model.Services.Any())
         {
-            ModelState.AddModelError(string.Empty, "Şu anda sistemde aktif antrenör bulunmuyor.");
+            ModelState.AddModelError(string.Empty, "Şu anda randevu için tanımlı hizmet bulunmuyor.");
         }
-        else if (!coachNames.Contains(model.SelectedCoach))
+        else if (model.Services.All(s => s.Id != model.SelectedServiceId))
         {
-            ModelState.AddModelError(nameof(model.SelectedCoach), "Geçerli bir antrenör seçiniz.");
+            ModelState.AddModelError(nameof(model.SelectedServiceId), "Geçerli bir hizmet seçiniz.");
+        }
+
+        if (model.Services.Any())
+        {
+            var allowedCoaches = model.ServiceCoachMap.TryGetValue(model.SelectedServiceId, out var list)
+                ? list
+                : Array.Empty<string>();
+
+            model.AvailableCoaches = allowedCoaches;
+
+            if (!allowedCoaches.Any())
+            {
+                ModelState.AddModelError(nameof(model.SelectedCoach), "Bu hizmet için uygun koç bulunmuyor.");
+            }
+            else if (!allowedCoaches.Contains(model.SelectedCoach))
+            {
+                ModelState.AddModelError(nameof(model.SelectedCoach), "Koç seçimi hizmet ile uyumlu değil.");
+            }
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        if (model.SelectedDate < today)
+        {
+            ModelState.AddModelError(nameof(model.SelectedDate), "Geçmiş tarihler için randevu alınamaz.");
         }
 
         if (!ModelState.IsValid)
         {
             return View(model);
         }
+
+        var selectedService = model.Services.FirstOrDefault(s => s.Id == model.SelectedServiceId);
+        if (selectedService is null)
+        {
+            ModelState.AddModelError(nameof(model.SelectedServiceId), "Seçilen hizmet bulunamadı.");
+            return View(model);
+        }
+
+        var userSlotConflict = await _context.AppointmentRequests
+            .AsNoTracking()
+            .AnyAsync(a => a.Email == user.Email
+                && a.Date == model.SelectedDate
+                && a.TimeSlot == model.SelectedTime
+                && a.Status != AppointmentStatus.Rejected);
+
+        if (userSlotConflict)
+        {
+            ModelState.AddModelError(string.Empty, $"{model.SelectedDate:dd MMMM} {model.SelectedTime} dilimi için zaten bir talebiniz bulunuyor. Lütfen farklı bir saat seçin.");
+            return View(model);
+        }
+
+        var slotConflictExists = await _context.AppointmentRequests
+            .AsNoTracking()
+            .AnyAsync(a => a.Coach == model.SelectedCoach
+                && a.Date == model.SelectedDate
+                && a.TimeSlot == model.SelectedTime
+                && a.Status != AppointmentStatus.Rejected);
+
+        if (slotConflictExists)
+        {
+            ModelState.AddModelError(string.Empty, $"{model.SelectedCoach} koçu {model.SelectedDate:dd MMMM} {model.SelectedTime} slotunda dolu. Lütfen farklı bir zaman seçin.");
+            return View(model);
+        }
+
+        var serviceName = selectedService.Name;
 
         var request = new AppointmentRequest
         {
@@ -74,6 +128,7 @@ public class AppointmentController : Controller
             Date = model.SelectedDate,
             TimeSlot = model.SelectedTime,
             Coach = model.SelectedCoach,
+            ServiceName = serviceName,
             Notes = model.Notes,
             Status = AppointmentStatus.Pending
         };
@@ -87,18 +142,13 @@ public class AppointmentController : Controller
 
     private async Task<AppointmentViewModel> BuildViewModelAsync(AppUser user)
     {
-        var coachNames = await GetCoachNamesAsync();
-        var selectedCoach = coachNames.FirstOrDefault() ?? string.Empty;
-        return new AppointmentViewModel
+        var model = new AppointmentViewModel
         {
-            AvailableCoaches = coachNames,
-            TimeSlots = TimeSlots,
-            SelectedDate = DateOnly.FromDateTime(DateTime.Today),
-            SelectedCoach = selectedCoach,
-            UserFullName = BuildUserDisplayName(user),
-            UserEmail = user.Email,
-            UserPhone = user.PhoneNumber
+            SelectedDate = DateOnly.FromDateTime(DateTime.Today)
         };
+
+        await PopulateBookingModelAsync(model, user);
+        return model;
     }
 
     private async Task<AppUser?> GetCurrentUserAsync()
@@ -118,12 +168,72 @@ public class AppointmentController : Controller
         return RedirectToAction("Login", "Account", new { returnUrl });
     }
 
-    private async Task<List<string>> GetCoachNamesAsync()
+    private async Task PopulateBookingModelAsync(AppointmentViewModel model, AppUser user)
     {
-        return await _context.Coaches
-            .OrderBy(c => c.FullName)
-            .Select(c => c.FullName)
+        var serviceData = await LoadServiceDataAsync();
+
+        model.Services = serviceData.Services;
+        model.ServiceCoachMap = serviceData.CoachMap.ToDictionary(
+            kvp => kvp.Key,
+            kvp => (IReadOnlyList<string>)kvp.Value);
+
+        if (model.SelectedServiceId == 0 && model.Services.Any())
+        {
+            model.SelectedServiceId = model.Services.First().Id;
+        }
+
+        var coaches = model.ServiceCoachMap.TryGetValue(model.SelectedServiceId, out var list)
+            ? list
+            : Array.Empty<string>();
+
+        model.AvailableCoaches = coaches;
+
+        if (string.IsNullOrWhiteSpace(model.SelectedCoach) && coaches.Any())
+        {
+            model.SelectedCoach = coaches.First();
+        }
+
+        model.TimeSlots = TimeSlots;
+        model.UserFullName = BuildUserDisplayName(user);
+        model.UserEmail = user.Email;
+        model.UserPhone = user.PhoneNumber;
+    }
+
+    private async Task<ServiceData> LoadServiceDataAsync()
+    {
+        var services = await _context.Services
+            .OrderBy(s => s.Name)
+            .Select(s => new ServiceOption
+            {
+                Id = s.Id,
+                Name = s.Name,
+                Description = s.Description
+            })
             .ToListAsync();
+
+        var map = new Dictionary<int, List<string>>();
+
+        if (services.Count > 0)
+        {
+            var serviceIds = services.Select(s => s.Id).ToArray();
+
+            var pairs = await _context.CoachServices
+                .Where(cs => serviceIds.Contains(cs.ServiceId))
+                .Select(cs => new
+                {
+                    cs.ServiceId,
+                    cs.Coach.FullName
+                })
+                .ToListAsync();
+
+            map = pairs
+                .GroupBy(p => p.ServiceId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(x => x.FullName).OrderBy(name => name).ToList());
+        }
+
+        return new ServiceData(services, map);
     }
 
     private static string BuildUserDisplayName(AppUser user)
@@ -133,4 +243,6 @@ public class AppointmentController : Controller
         var joined = string.Join(" ", nameParts);
         return string.IsNullOrWhiteSpace(joined) ? user.Email : joined;
     }
+
+    private sealed record ServiceData(List<ServiceOption> Services, Dictionary<int, List<string>> CoachMap);
 }

@@ -15,4 +15,6 @@ public class NewCoachInputModel
 
     [MaxLength(512)]
     public string? Bio { get; set; }
+
+    public List<int> ServiceIds { get; set; } = new();
 }

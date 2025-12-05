@@ -1,9 +1,47 @@
-@{
-    ViewData["Title"] = "Kullanıcı Paneli";
-}
-
+@model WebProje.Models.DashboardViewModel
+@using System.Globalization
+@using System.Linq
+@using System.Text.Encodings.Web
+@using System.Text.Json
 @{
     Layout = "_DashboardLayout";
+    ViewData["Title"] = "Kullanıcı Paneli";
+    var culture = CultureInfo.GetCultureInfo("tr-TR");
+    var now = DateTime.Today;
+    var monthStart = new DateOnly(now.Year, now.Month, 1);
+    var daysInMonth = DateTime.DaysInMonth(monthStart.Year, monthStart.Month);
+    var firstDayOffset = ((int)monthStart.DayOfWeek + 6) % 7;
+    var totalCells = (int)Math.Ceiling((firstDayOffset + daysInMonth) / 7.0) * 7;
+    var todayIso = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
+    var schedulePayload = JsonSerializer.Serialize(
+        Model.Appointments.Select(slot => new
+        {
+            date = slot.Date.ToString("yyyy-MM-dd"),
+            time = slot.TimeSlot,
+            coach = slot.Coach,
+            service = slot.Service,
+            status = slot.Status
+        }),
+        new JsonSerializerOptions
+        {
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        });
+}
+
+@functions {
+    public static string GetStatusLabel(string status) => status switch
+    {
+        WebProje.Models.AppointmentStatus.Approved => "Onaylandı",
+        WebProje.Models.AppointmentStatus.Rejected => "Reddedildi",
+        _ => "Beklemede"
+    };
+
+    public static string GetStatusClass(string status) => status switch
+    {
+        WebProje.Models.AppointmentStatus.Approved => "approved",
+        WebProje.Models.AppointmentStatus.Rejected => "rejected",
+        _ => "pending"
+    };
 }
 
 <div class="dashboard-grid">
@@ -22,9 +60,51 @@
         <div>
             <p class="stat-label">Hazır mısınız?</p>
             <h2>Koçunuzla yeni bir seans planlayın</h2>
-            <p>Programınıza uygun tarihi ve saat dilimini seçin, biz geri kalanını hallederiz.</p>
+            <p>@Model.UserFullName, programınıza uygun tarihi ve saat dilimini seçin.</p>
         </div>
         <a class="action-btn appointment-btn" asp-controller="Appointment" asp-action="Book">Randevu Al</a>
+    </section>
+
+    <section class="schedule-card full-width">
+        <header class="schedule-header">
+            <div>
+                <p class="stat-label">Aylık Takvim</p>
+                <h2>@monthStart.ToString("MMMM yyyy", culture)</h2>
+            </div>
+            <div class="schedule-badge" id="userCalendarSummary">Takvim yükleniyor...</div>
+        </header>
+        <div class="user-calendar-meta">
+            <span>@($"{Model.Appointments.Count} randevu kaydı")</span>
+            <span>@Model.UserEmail</span>
+        </div>
+        <div class="user-calendar-grid" id="userCalendarGrid"></div>
+        <div class="user-calendar-legend">
+            <span class="status-pill approved">Onaylandı</span>
+            <span class="status-pill pending">Beklemede</span>
+            <span class="status-pill rejected">Reddedildi</span>
+        </div>
+        <div class="upcoming-block">
+            <h3>Yaklaşan Randevular</h3>
+            @if (Model.UpcomingAppointments.Any())
+            {
+                <div class="upcoming-list">
+                    @foreach (var slot in Model.UpcomingAppointments)
+                    {
+                        <div class="upcoming-item">
+                            <div>
+                                <strong>@slot.Date.ToString("dd MMMM", culture) · @slot.TimeSlot</strong>
+                                <div class="stat-label">@slot.Service · @slot.Coach</div>
+                            </div>
+                            <span class="status-pill @GetStatusClass(slot.Status)">@GetStatusLabel(slot.Status)</span>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="stat-label">Bu ay için planlanmış randevu bulunmuyor.</p>
+            }
+        </div>
     </section>
 
     <div class="full-width">
@@ -147,3 +227,100 @@
         </div>
     </section>
 </div>
+
+@section Scripts {
+    <script type="application/json" id="userScheduleData">@Html.Raw(schedulePayload)</script>
+    <script>
+        (() => {
+            const dataElement = document.getElementById('userScheduleData');
+            const grid = document.getElementById('userCalendarGrid');
+            const summary = document.getElementById('userCalendarSummary');
+            if (!dataElement || !grid || !summary) {
+                return;
+            }
+            const slots = JSON.parse(dataElement.textContent || '[]');
+            const config = {
+                monthPrefix: '@monthStart.ToString("yyyy-MM")',
+                firstDayOffset: @firstDayOffset,
+                daysInMonth: @daysInMonth,
+                totalCells: @totalCells,
+                todayIso: '@todayIso'
+            };
+            const statusMap = {
+                Approved: { label: 'Onaylandı', className: 'approved' },
+                Rejected: { label: 'Reddedildi', className: 'rejected' },
+                Pending: { label: 'Beklemede', className: 'pending' }
+            };
+
+            const buildCalendar = () => {
+                const filtered = slots.filter(slot => slot.date && slot.date.startsWith(config.monthPrefix));
+                const grouped = filtered.reduce((acc, slot) => {
+                    acc[slot.date] = acc[slot.date] || [];
+                    acc[slot.date].push(slot);
+                    return acc;
+                }, {});
+
+                const busyDays = Object.keys(grouped).length;
+                summary.textContent = busyDays > 0 ? `${busyDays} gün dolu` : 'Henüz dolu gün yok';
+                grid.innerHTML = '';
+
+                for (let cell = 0; cell < config.totalCells; cell++) {
+                    const dayNumber = cell - config.firstDayOffset + 1;
+                    const cellDiv = document.createElement('div');
+
+                    if (dayNumber < 1 || dayNumber > config.daysInMonth) {
+                        cellDiv.className = 'user-calendar-day empty';
+                        grid.appendChild(cellDiv);
+                        continue;
+                    }
+
+                    const dateKey = `${config.monthPrefix}-${String(dayNumber).padStart(2, '0')}`;
+                    const daySlots = grouped[dateKey] || [];
+                    const isPast = dateKey < config.todayIso;
+                    const modifier = daySlots.length === 0
+                        ? 'free'
+                        : daySlots.some(slot => slot.status === 'Approved') ? 'approved'
+                        : daySlots.some(slot => slot.status === 'Pending') ? 'pending'
+                        : 'rejected';
+
+                    const classList = ['user-calendar-day', modifier];
+                    if (isPast) {
+                        classList.push('past');
+                    }
+                    cellDiv.className = classList.join(' ');
+
+                    const dayLabel = document.createElement('span');
+                    dayLabel.className = 'day-number';
+                    dayLabel.textContent = dayNumber.toString();
+                    cellDiv.appendChild(dayLabel);
+
+                    if (daySlots.length === 0) {
+                        const free = document.createElement('small');
+                        free.textContent = isPast ? 'Geçmiş' : 'Müsait';
+                        cellDiv.appendChild(free);
+                    } else {
+                        const list = document.createElement('ul');
+                        daySlots.sort((a, b) => (a.time || '').localeCompare(b.time || '', 'tr-TR', { numeric: true }));
+                        daySlots.forEach(slot => {
+                            const item = document.createElement('li');
+                            const info = document.createElement('span');
+                            info.textContent = `${slot.time ?? ''} · ${slot.coach ?? ''}`;
+                            const badge = document.createElement('span');
+                            const meta = statusMap[slot.status] || statusMap.Pending;
+                            badge.className = `status-pill ${meta.className}`;
+                            badge.textContent = meta.label;
+                            item.appendChild(info);
+                            item.appendChild(badge);
+                            list.appendChild(item);
+                        });
+                        cellDiv.appendChild(list);
+                    }
+
+                    grid.appendChild(cellDiv);
+                }
+            };
+
+            buildCalendar();
+        })();
+    </script>
+}

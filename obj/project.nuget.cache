@@ -46,15 +46,5 @@
     "C:\\Users\\t1o4m\\.nuget\\packages\\system.text.json\\9.0.2\\system.text.json.9.0.2.nupkg.sha512",
     "C:\\Users\\t1o4m\\.nuget\\packages\\system.threading.channels\\7.0.0\\system.threading.channels.7.0.0.nupkg.sha512"
   ],
-  "logs": [
-    {
-      "code": "NU1900",
-      "level": "Warning",
-      "message": "Paket güvenlik açığı verileri alınırken hata oluştu: https://api.nuget.org/v3/index.json kaynağı için hizmet dizini yüklenemiyor.",
-      "projectPath": "C:\\Users\\t1o4m\\Desktop\\WebProje\\WebProje.csproj",
-      "warningLevel": 1,
-      "filePath": "C:\\Users\\t1o4m\\Desktop\\WebProje\\WebProje.csproj",
-      "targetGraphs": []
-    }
-  ]
+  "logs": []
 }

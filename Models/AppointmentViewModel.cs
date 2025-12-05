@@ -13,6 +13,10 @@ public class AppointmentViewModel
     [Display(Name = "Telefon")]
     public string? UserPhone { get; set; }
 
+    [Required(ErrorMessage = "Hizmet seçiniz.")]
+    [Display(Name = "Hizmet")]
+    public int SelectedServiceId { get; set; }
+
     [Required(ErrorMessage = "Tarih seçiniz.")]
     [DataType(DataType.Date)]
     [Display(Name = "Tarih")]
@@ -32,4 +36,7 @@ public class AppointmentViewModel
 
     public IReadOnlyList<string> AvailableCoaches { get; set; } = Array.Empty<string>();
     public IReadOnlyList<string> TimeSlots { get; set; } = Array.Empty<string>();
+    public IReadOnlyList<ServiceOption> Services { get; set; } = Array.Empty<ServiceOption>();
+    public IDictionary<int, IReadOnlyList<string>> ServiceCoachMap { get; set; }
+        = new Dictionary<int, IReadOnlyList<string>>();
 }

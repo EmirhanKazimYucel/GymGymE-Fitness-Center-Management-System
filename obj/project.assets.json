@@ -2789,11 +2789,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\t1o4m\\Desktop\\WebProje\\WebProje.csproj",
+      "projectUniqueName": "c:\\Users\\t1o4m\\Desktop\\WebProje\\WebProje.csproj",
       "projectName": "WebProje",
-      "projectPath": "C:\\Users\\t1o4m\\Desktop\\WebProje\\WebProje.csproj",
+      "projectPath": "c:\\Users\\t1o4m\\Desktop\\WebProje\\WebProje.csproj",
       "packagesPath": "C:\\Users\\t1o4m\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\t1o4m\\Desktop\\WebProje\\obj\\",
+      "outputPath": "c:\\Users\\t1o4m\\Desktop\\WebProje\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -2870,13 +2870,5 @@
         "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.304/PortableRuntimeIdentifierGraph.json"
       }
     }
-  },
-  "logs": [
-    {
-      "code": "NU1900",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "Paket güvenlik açığı verileri alınırken hata oluştu: https://api.nuget.org/v3/index.json kaynağı için hizmet dizini yüklenemiyor."
-    }
-  ]
+  }
 }
