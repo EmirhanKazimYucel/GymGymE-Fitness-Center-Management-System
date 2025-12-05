@@ -1,8 +1,6 @@
+@model WebProje.Models.AdminPanelViewModel
 @{
     ViewData["Title"] = "Admin Paneli";
-}
-
-@{
     Layout = null;
 }
 
@@ -44,6 +42,11 @@
             display:inline-block;
             padding:6px 14px;
             border-radius:999px;
+            background:#222831;
+            font-size:12px;
+            color:#9AD734;
+            margin-left:8px;
+        }
         .admin-grid {
             display:grid;
             grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));
@@ -80,10 +83,88 @@
             font-weight:600;
             cursor:pointer;
         }
-            background:#222831;
+        .status-chip {
+            display:inline-flex;
+            align-items:center;
+            gap:6px;
+            padding:4px 10px;
+            border-radius:999px;
             font-size:12px;
-            color:#9AD734;
-            margin-left:8px;
+        }
+        .status-chip.pending {
+            background:rgba(255, 193, 7, 0.15);
+            color:#ffc107;
+        }
+        .status-chip.approved {
+            background:rgba(74, 222, 128, 0.15);
+            color:#4ade80;
+        }
+        .status-chip.rejected {
+            background:rgba(248, 113, 113, 0.15);
+            color:#f87171;
+        }
+        .admin-actions {
+            display:flex;
+            gap:8px;
+        }
+        .admin-actions form {
+            display:inline;
+        }
+        .admin-actions button {
+            padding:6px 12px;
+            border:none;
+            border-radius:10px;
+            font-weight:600;
+            cursor:pointer;
+        }
+        .btn-approve { background:#4ade80; color:#0f172a; }
+        .btn-reject { background:#f87171; color:white; }
+        .flash-message {
+            background:#1f2937;
+            border:1px solid rgba(255,255,255,0.08);
+            padding:16px;
+            border-radius:16px;
+            margin-bottom:24px;
+        }
+        .coach-list {
+            display:flex;
+            flex-direction:column;
+            gap:16px;
+        }
+        .coach-card {
+            padding:16px;
+            border-radius:16px;
+            background:rgba(255,255,255,0.03);
+            border:1px solid rgba(255,255,255,0.05);
+        }
+        .coach-card h4 {
+            margin:0 0 6px 0;
+        }
+        .admin-form {
+            display:flex;
+            flex-direction:column;
+            gap:12px;
+        }
+        .admin-form label {
+            font-size:13px;
+            color:#94a3b8;
+        }
+        .admin-form input,
+        .admin-form textarea {
+            width:100%;
+            border-radius:12px;
+            border:1px solid rgba(148,163,184,0.4);
+            background:#111318;
+            color:white;
+            padding:10px 12px;
+            font-family:inherit;
+        }
+        .validation-summary {
+            background:rgba(248,113,113,0.12);
+            border:1px solid rgba(248,113,113,0.4);
+            padding:12px;
+            border-radius:12px;
+            color:#fecaca;
         }
     </style>
 </head>
@@ -101,14 +182,112 @@
     <main class="admin-main">
         @if (TempData["LoginMessage"] is string loginMessage)
         {
-            <div class="admin-card">
+            <div class="flash-message">
                 <strong>@loginMessage</strong>
+            </div>
+        }
+        @if (TempData["AdminMessage"] is string adminMessage)
+        {
+            <div class="flash-message">
+                <strong>@adminMessage</strong>
             </div>
         }
         <div class="admin-card">
             <h2>Panel Özeti <span class="tag">Beta</span></h2>
             <p>Bu alan yalnızca yöneticilere özeldir. Gelecekte kullanıcı yönetimi, içerik onayı ve raporlar burada yer alacak.</p>
         </div>
+        <section class="admin-card">
+            <h3>Bekleyen Randevu Talepleri</h3>
+            @if (!Model.PendingAppointments.Any())
+            {
+                <p>Şu anda onay bekleyen talep bulunmuyor.</p>
+            }
+            else
+            {
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Üye</th>
+                            <th>İletişim</th>
+                            <th>Tarih / Saat</th>
+                            <th>Koç</th>
+                            <th>Not</th>
+                            <th>İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var appointment in Model.PendingAppointments)
+                    {
+                        <tr>
+                            <td>@appointment.FullName</td>
+                            <td>
+                                <div>@appointment.Email</div>
+                                @if (!string.IsNullOrWhiteSpace(appointment.PhoneNumber))
+                                {
+                                    <small>@appointment.PhoneNumber</small>
+                                }
+                            </td>
+                            <td>@appointment.Date:dd MMM yyyy<br />@appointment.TimeSlot</td>
+                            <td>@appointment.Coach</td>
+                            <td>@appointment.Notes</td>
+                            <td>
+                                <div class="admin-actions">
+                                    <form asp-action="UpdateAppointmentStatus" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@appointment.Id" />
+                                        <input type="hidden" name="actionType" value="approve" />
+                                        <button type="submit" class="btn-approve">Onayla</button>
+                                    </form>
+                                    <form asp-action="UpdateAppointmentStatus" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@appointment.Id" />
+                                        <input type="hidden" name="actionType" value="reject" />
+                                        <button type="submit" class="btn-reject">Reddet</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            }
+        </section>
+        <section class="admin-card">
+            <h3>Son Kararlar</h3>
+            @if (!Model.RecentDecisions.Any())
+            {
+                <p>Henüz onaylanmış veya reddedilmiş talep yok.</p>
+            }
+            else
+            {
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Üye</th>
+                            <th>Tarih/Saat</th>
+                            <th>Koç</th>
+                            <th>Durum</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var decision in Model.RecentDecisions)
+                        {
+                            <tr>
+                                <td>@decision.FullName</td>
+                                <td>@decision.Date:dd MMM yyyy - @decision.TimeSlot</td>
+                                <td>@decision.Coach</td>
+                                <td>
+                                    @{
+                                        var statusClass = decision.Status == WebProje.Models.AppointmentStatus.Approved ? "approved" : "rejected";
+                                    }
+                                    <span class="status-chip @statusClass">@decision.Status</span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </section>
         <div class="admin-grid">
             <section class="admin-card">
                 <h3>Salon Çalışma Saatleri</h3>
@@ -150,26 +329,65 @@
                 </table>
             </section>
             <section class="admin-card">
-                <h3>Antrenör Kaydı</h3>
-                <p>Uzmanlık alanlarını ve sundukları hizmetleri ekleyin.</p>
-                <div>
-                    <strong>Mert Kaya</strong>
-                    <div>
-                        <span class="pill">Kas Geliştirme</span>
-                        <span class="pill">Kilo Verme</span>
+                <h3>Antrenör Listesi</h3>
+                @if (!Model.Coaches.Any())
+                {
+                    <p>Henüz kayıtlı antrenör bulunmuyor.</p>
+                }
+                else
+                {
+                    <div class="coach-list">
+                        @foreach (var coach in Model.Coaches)
+                        {
+                            <div class="coach-card">
+                                <h4>@coach.FullName</h4>
+                                @if (!string.IsNullOrWhiteSpace(coach.Bio))
+                                {
+                                    <p>@coach.Bio</p>
+                                }
+                                <div>
+                                    @if (!string.IsNullOrWhiteSpace(coach.ExpertiseTags))
+                                    {
+                                        foreach (var tag in coach.ExpertiseTags.Split(",", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                                        {
+                                            <span class="pill">@tag</span>
+                                        }
+                                    }
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(coach.ServicesOffered))
+                                {
+                                    <small>Hizmetler: @coach.ServicesOffered</small>
+                                }
+                            </div>
+                        }
                     </div>
-                    <small>Hizmetler: Fitness PT, HIIT</small>
-                </div>
-                <hr />
-                <div>
-                    <strong>Selin Ar</strong>
+                }
+            </section>
+            <section class="admin-card">
+                <h3>Yeni Antrenör Ekle</h3>
+                <p>Uzmanlık alanlarını virgülle veya satır satır yazabilirsiniz.</p>
+                <form asp-action="AddCoach" method="post" class="admin-form">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
                     <div>
-                        <span class="pill">Yoga</span>
-                        <span class="pill">Esneklik</span>
+                        <label asp-for="NewCoach.FullName"></label>
+                        <input asp-for="NewCoach.FullName" />
+                        <span asp-validation-for="NewCoach.FullName" class="text-danger"></span>
                     </div>
-                    <small>Hizmetler: Yoga Grup, Meditasyon</small>
-                </div>
-                <button class="cta-btn" style="margin-top:16px;">Yeni Antrenör Ekle</button>
+                    <div>
+                        <label asp-for="NewCoach.ExpertiseTags">Uzmanlık Etiketleri</label>
+                        <textarea asp-for="NewCoach.ExpertiseTags" rows="2"></textarea>
+                    </div>
+                    <div>
+                        <label asp-for="NewCoach.ServicesOffered">Hizmetler</label>
+                        <textarea asp-for="NewCoach.ServicesOffered" rows="2"></textarea>
+                    </div>
+                    <div>
+                        <label asp-for="NewCoach.Bio">Kısa Biyografi</label>
+                        <textarea asp-for="NewCoach.Bio" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="cta-btn" style="align-self:flex-start;">Kaydet</button>
+                </form>
             </section>
             <section class="admin-card">
                 <h3>Müsaitlik Planlayıcı</h3>

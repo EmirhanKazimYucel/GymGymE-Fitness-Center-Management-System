@@ -13,8 +13,25 @@
             </div>
             <a asp-controller="Dashboard" asp-action="Index" class="action-btn muted-btn">Panele Dön</a>
         </header>
+        @{
+            var coachItems = Model.AvailableCoaches.Select(name => new SelectListItem { Value = name, Text = name }).ToList();
+            var hasCoaches = coachItems.Any();
+        }
         <form asp-action="Book" method="post" class="form-grid">
             <div asp-validation-summary="ModelOnly" class="validation"></div>
+            <div class="full-width info-card">
+                <p class="stat-label">Hesap Bilgileriniz</p>
+                <div class="info-grid">
+                    <div>
+                        <strong>@Model.UserFullName</strong>
+                        <div class="stat-label">@Model.UserEmail</div>
+                    </div>
+                    <div>
+                        <span class="stat-label">Telefon</span>
+                        <div>@(string.IsNullOrWhiteSpace(Model.UserPhone) ? "-" : Model.UserPhone)</div>
+                    </div>
+                </div>
+            </div>
             <div>
                 <label asp-for="SelectedDate"></label>
                 <input asp-for="SelectedDate" type="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
@@ -27,11 +44,36 @@
             </div>
             <div>
                 <label asp-for="SelectedCoach"></label>
-                <select asp-for="SelectedCoach" asp-items="@(new SelectList(Model.AvailableCoaches))"></select>
+                @if (hasCoaches)
+                {
+                    <select asp-for="SelectedCoach" asp-items="coachItems"></select>
+                }
+                else
+                {
+                    <select disabled>
+                        <option value="">Henüz antrenör bulunmuyor</option>
+                    </select>
+                }
                 <span asp-validation-for="SelectedCoach" class="validation"></span>
+                @if (!hasCoaches)
+                {
+                    <small class="stat-label">Admin yeni antrenör eklediğinde bu alan aktifleşecek.</small>
+                }
+            </div>
+            <div class="full-width">
+                <label asp-for="Notes"></label>
+                <textarea asp-for="Notes" rows="3"></textarea>
+                <span asp-validation-for="Notes" class="validation"></span>
             </div>
             <div class="form-actions">
-                <button type="submit" class="action-btn btn-upgrade">Randevu Oluştur</button>
+                @if (hasCoaches)
+                {
+                    <button type="submit" class="action-btn btn-upgrade">Talebi Gönder</button>
+                }
+                else
+                {
+                    <button type="submit" class="action-btn btn-upgrade" disabled>Talebi Gönder</button>
+                }
             </div>
         </form>
     </section>

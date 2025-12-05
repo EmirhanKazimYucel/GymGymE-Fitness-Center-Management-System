@@ -4,9 +4,10 @@ namespace WebProje.Models;
 
 public class LoginViewModel
 {
-    [Required(ErrorMessage = "Kullanıcı adı gerekli.")]
-    [Display(Name = "Kullanıcı Adı")]
-    public string Username { get; set; } = string.Empty;
+    [Required(ErrorMessage = "E-posta gerekli.")]
+    [EmailAddress(ErrorMessage = "Geçerli bir e-posta giriniz.")]
+    [Display(Name = "E-posta")]
+    public string Email { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Şifre gerekli.")]
     [DataType(DataType.Password)]

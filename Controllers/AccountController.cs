@@ -1,6 +1,11 @@
-using System.Collections.Generic;
+using System;
 using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using WebProje.Data;
 using WebProje.Models;
 
 namespace WebProje.Controllers;
@@ -9,40 +14,57 @@ public class AccountController : Controller
 {
     private const string RoleAdmin = "Admin";
     private const string RoleUser = "User";
+    private readonly FitnessContext _context;
+    private readonly IPasswordHasher<AppUser> _passwordHasher;
 
-    private static readonly List<UserCredential> Users =
-    [
-        new("demo", "demo123", "Demo Kullanıcısı", RoleUser),
-        new("admin", "admin123", "Yönetici", RoleAdmin)
-    ];
+    public AccountController(FitnessContext context, IPasswordHasher<AppUser> passwordHasher)
+    {
+        _context = context;
+        _passwordHasher = passwordHasher;
+    }
 
     [HttpGet]
-    public IActionResult Login(string? returnUrl = null)
+    public IActionResult Login(string? returnUrl = null, string tab = "login")
     {
-        var model = new LoginViewModel { ReturnUrl = returnUrl };
-        return View(model);
+        var viewModel = new AuthPageViewModel
+        {
+            Login = new LoginViewModel { ReturnUrl = returnUrl }
+        };
+        ViewData["ActiveTab"] = tab;
+        return View(viewModel);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Login(LoginViewModel model)
+    public async Task<IActionResult> Login([Bind(Prefix = "Login")] LoginViewModel model)
     {
         if (!ModelState.IsValid)
         {
-            return View(model);
+            return BuildAuthView(model, null, "login");
         }
 
-        var user = Users.FirstOrDefault(u =>
-            string.Equals(u.Username, model.Username, StringComparison.OrdinalIgnoreCase) &&
-            u.Password == model.Password);
+        var user = await _context.Users.AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Email == model.Email);
 
         if (user is null)
         {
-            ModelState.AddModelError(string.Empty, "Kullanıcı adı veya şifre hatalı.");
-            return View(model);
+            ModelState.AddModelError("Login.Email", "E-posta veya şifre hatalı.");
+            return BuildAuthView(model, null, "login");
         }
 
-        TempData["LoginMessage"] = $"Hoş geldin {user.DisplayName}!";
+        var verification = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, model.Password);
+
+        if (verification == PasswordVerificationResult.Failed)
+        {
+            ModelState.AddModelError("Login.Email", "E-posta veya şifre hatalı.");
+            return BuildAuthView(model, null, "login");
+        }
+
+        HttpContext.Session.SetInt32(SessionKeys.UserId, user.Id);
+        HttpContext.Session.SetString(SessionKeys.UserRole, user.Role);
+
+        var displayName = string.Join(" ", new[] { user.FirstName, user.LastName }.Where(s => !string.IsNullOrWhiteSpace(s)));
+        TempData["LoginMessage"] = $"Hoş geldin {(string.IsNullOrWhiteSpace(displayName) ? user.Email : displayName)}!";
 
         if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
         {
@@ -57,5 +79,49 @@ public class AccountController : Controller
         };
     }
 
-    private sealed record UserCredential(string Username, string Password, string DisplayName, string Role);
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Register([Bind(Prefix = "Register")] RegisterViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BuildAuthView(null, model, "register");
+        }
+
+        if (await _context.Users.AnyAsync(u => u.Email == model.Email))
+        {
+            ModelState.AddModelError("Register.Email", "Bu e-posta ile kayıt zaten mevcut.");
+            return BuildAuthView(null, model, "register");
+        }
+
+        var user = new AppUser
+        {
+            FirstName = model.FirstName,
+            LastName = model.LastName,
+            Email = model.Email,
+            PhoneNumber = model.PhoneNumber,
+            BirthDate = model.BirthDate,
+            Role = RoleUser
+        };
+
+        user.PasswordHash = _passwordHasher.HashPassword(user, model.Password);
+
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        TempData["RegisterSuccess"] = "Kaydınız oluşturuldu. Şimdi giriş yapabilirsiniz.";
+        return RedirectToAction(nameof(Login));
+    }
+
+    private IActionResult BuildAuthView(LoginViewModel? login, RegisterViewModel? register, string activeTab)
+    {
+        var viewModel = new AuthPageViewModel
+        {
+            Login = login ?? new LoginViewModel(),
+            Register = register ?? new RegisterViewModel()
+        };
+        ViewData["ActiveTab"] = activeTab;
+        return View("Login", viewModel);
+    }
+
 }

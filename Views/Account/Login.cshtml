@@ -1,39 +1,167 @@
-@model WebProje.Models.LoginViewModel
+@model WebProje.Models.AuthPageViewModel
 @{
     ViewData["Title"] = "Giriş Yap";
+    var activeTab = (ViewData["ActiveTab"] as string ?? "login").ToLowerInvariant();
 }
 
-<div class="row justify-content-center">
-    <div class="col-md-6 col-lg-4">
-        <h2 class="text-center mb-4">Hesabınıza giriş yapın</h2>
+@section Styles {
+    <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
+}
 
-        <div class="alert alert-info" role="alert">
-            Test kullanıcıları:<br />
-            <strong>demo / demo123</strong><br />
-            <strong>admin / admin123</strong>
+<div class="login-page">
+    <section class="login-hero">
+        <div class="hero-text">
+            <span class="hero-eyebrow">studio portal</span>
+            <h1 class="hero-heading">How does it work?</h1>
+            <p>Programını oluştur, randevunu seç ve fitness yolculuğunu tek ekrandan yönet. Sağ taraftaki kutudan giriş yap ya da hızlıca kayıt ol.</p>
         </div>
 
-        <form asp-action="Login" method="post" novalidate>
-            <input type="hidden" asp-for="ReturnUrl" />
-            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
-
-            <div class="mb-3">
-                <label asp-for="Username" class="form-label"></label>
-                <input asp-for="Username" class="form-control" autocomplete="username" />
-                <span asp-validation-for="Username" class="text-danger"></span>
+        <div class="login-card">
+            <div class="auth-tabs">
+                <button type="button" class="tab-btn @(activeTab == "login" ? "active" : string.Empty)" data-target="login-panel">Giriş Yap</button>
+                <button type="button" class="tab-btn @(activeTab == "register" ? "active" : string.Empty)" data-target="register-panel">Kayıt Ol</button>
             </div>
 
-            <div class="mb-4">
-                <label asp-for="Password" class="form-label"></label>
-                <input asp-for="Password" class="form-control" autocomplete="current-password" />
-                <span asp-validation-for="Password" class="text-danger"></span>
+            @if (TempData["RegisterSuccess"] is string successMessage)
+            {
+                <div class="credentials-hint success">
+                    @successMessage
+                </div>
+            }
+
+            <div id="login-panel" class="auth-panel @(activeTab == "login" ? "active" : string.Empty)">
+                <h2>Üyelik Girişi</h2>
+                <p class="hero-sub">E-postan ve şifren ile portala eriş.</p>
+
+                <form asp-action="Login" method="post" novalidate>
+                    <input type="hidden" asp-for="Login.ReturnUrl" />
+                    <div asp-validation-summary="ModelOnly" class="validation"></div>
+
+                    <label asp-for="Login.Email"></label>
+                    <input asp-for="Login.Email" autocomplete="email" />
+                    <span asp-validation-for="Login.Email" class="validation"></span>
+
+                    <label asp-for="Login.Password"></label>
+                    <input asp-for="Login.Password" autocomplete="current-password" />
+                    <span asp-validation-for="Login.Password" class="validation"></span>
+
+                    <button type="submit">Giriş Yap</button>
+                </form>
+
+                <div class="credentials-hint">
+                    <strong>Test hesapları</strong>
+                    <div>demo@fitapp.com / demo123</div>
+                    <div>admin@fitapp.com / admin123</div>
+                </div>
             </div>
 
-            <button type="submit" class="btn btn-primary w-100">Giriş Yap</button>
-        </form>
-    </div>
+            <div id="register-panel" class="auth-panel @(activeTab == "register" ? "active" : string.Empty)">
+                <h2>Yeni Hesap Oluştur</h2>
+                <p class="hero-sub">Ad, iletişim ve doğum tarihi bilgilerini girerek kayıt ol.</p>
+
+                <form asp-action="Register" method="post" novalidate>
+                    <div asp-validation-summary="ModelOnly" class="validation"></div>
+
+                    <div class="form-row">
+                        <div>
+                            <label asp-for="Register.FirstName"></label>
+                            <input asp-for="Register.FirstName" autocomplete="given-name" />
+                            <span asp-validation-for="Register.FirstName" class="validation"></span>
+                        </div>
+                        <div>
+                            <label asp-for="Register.LastName"></label>
+                            <input asp-for="Register.LastName" autocomplete="family-name" />
+                            <span asp-validation-for="Register.LastName" class="validation"></span>
+                        </div>
+                    </div>
+
+                    <label asp-for="Register.Email"></label>
+                    <input asp-for="Register.Email" autocomplete="email" />
+                    <span asp-validation-for="Register.Email" class="validation"></span>
+
+                    <label asp-for="Register.PhoneNumber"></label>
+                    <input asp-for="Register.PhoneNumber" autocomplete="tel" />
+                    <span asp-validation-for="Register.PhoneNumber" class="validation"></span>
+
+                    <label asp-for="Register.BirthDate"></label>
+                    <input asp-for="Register.BirthDate" type="date" />
+                    <span asp-validation-for="Register.BirthDate" class="validation"></span>
+
+                    <div class="form-row">
+                        <div>
+                            <label asp-for="Register.Password"></label>
+                            <input asp-for="Register.Password" autocomplete="new-password" />
+                            <span asp-validation-for="Register.Password" class="validation"></span>
+                        </div>
+                        <div>
+                            <label asp-for="Register.ConfirmPassword"></label>
+                            <input asp-for="Register.ConfirmPassword" autocomplete="new-password" />
+                            <span asp-validation-for="Register.ConfirmPassword" class="validation"></span>
+                        </div>
+                    </div>
+
+                    <button type="submit">Kaydı Tamamla</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <section class="steps-section">
+        <h2>4 kolay adım</h2>
+        <p>Giriş yaptıktan sonra üyeler bu süreçten geçer.</p>
+        <div class="step-grid">
+            <article class="step-card">
+                <span class="step-number">01</span>
+                <div class="step-illustration">
+                    <img src="~/images/how-it-works/step1.png" alt="Plan seçimini gösteren illustrasyon" loading="lazy" onload="this.nextElementSibling?.classList.add('hide');" onerror="this.style.display='none'; this.nextElementSibling?.classList.remove('hide');" />
+                    <span class="step-placeholder">~/images/how-it-works/step1.png</span>
+                </div>
+                <h3 class="step-title">Hizmeti seç</h3>
+                <p class="step-desc">Salonun sunduğu fitness, yoga veya pilates paketlerinden birini belirle.</p>
+            </article>
+            <article class="step-card">
+                <span class="step-number">02</span>
+                <div class="step-illustration">
+                    <img src="~/images/how-it-works/step2.png" alt="Takvimde zaman seçimi illustrasyonu" loading="lazy" onload="this.nextElementSibling?.classList.add('hide');" onerror="this.style.display='none'; this.nextElementSibling?.classList.remove('hide');" />
+                    <span class="step-placeholder">~/images/how-it-works/step2.png</span>
+                </div>
+                <h3 class="step-title">Zamanını planla</h3>
+                <p class="step-desc">Çalışma saatleri ve antrenör müsaitliklerine göre sana uygun slotu seç.</p>
+            </article>
+            <article class="step-card">
+                <span class="step-number">03</span>
+                <div class="step-illustration">
+                    <img src="~/images/how-it-works/step3.png" alt="Teslimat aracını hatırlatan illustrasyon" loading="lazy" onload="this.nextElementSibling?.classList.add('hide');" onerror="this.style.display='none'; this.nextElementSibling?.classList.remove('hide');" />
+                    <span class="step-placeholder">~/images/how-it-works/step3.png</span>
+                </div>
+                <h3 class="step-title">Onay al</h3>
+                <p class="step-desc">Sistem rezervasyonunu anında doğrular ve paneline işler.</p>
+            </article>
+            <article class="step-card">
+                <span class="step-number">04</span>
+                <div class="step-illustration">
+                    <img src="~/images/how-it-works/step4.png" alt="Mutlu üye illustrasyonu" loading="lazy" onload="this.nextElementSibling?.classList.add('hide');" onerror="this.style.display='none'; this.nextElementSibling?.classList.remove('hide');" />
+                    <span class="step-placeholder">~/images/how-it-works/step4.png</span>
+                </div>
+                <h3 class="step-title">Keyfini çıkar</h3>
+                <p class="step-desc">Seansına katıl, ilerlemeni Dashboard ekranından izle.</p>
+            </article>
+        </div>
+    </section>
 </div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.querySelectorAll('.auth-tabs .tab-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const target = this.dataset.target;
+                document.querySelectorAll('.auth-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                document.querySelectorAll('.auth-panel').forEach(panel => {
+                    panel.classList.toggle('active', panel.id === target);
+                });
+            });
+        });
+    </script>
 }
