@@ -323,6 +323,177 @@ body.dashboard-body {
     background:var(--light);
 }
 
+.schedule-card {
+    background:var(--card);
+    border-radius:28px;
+    padding:28px;
+    box-shadow:0 12px 24px rgba(31,34,36,0.1);
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+}
+
+.schedule-header {
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:16px;
+}
+
+.schedule-badge {
+    border-radius:999px;
+    background:rgba(31,34,36,0.08);
+    color:var(--dark);
+    padding:8px 18px;
+    font-weight:600;
+}
+
+.user-calendar-meta {
+    display:flex;
+    justify-content:space-between;
+    font-size:14px;
+    color:var(--muted);
+    flex-wrap:wrap;
+    gap:8px;
+}
+
+.user-calendar-grid {
+    display:grid;
+    grid-template-columns:repeat(7, minmax(0, 1fr));
+    gap:8px;
+}
+
+.user-calendar-day {
+    min-height:110px;
+    border-radius:18px;
+    border:1px solid rgba(31,34,36,0.12);
+    padding:10px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    background:white;
+}
+
+.user-calendar-day .day-number {
+    font-weight:700;
+    font-size:14px;
+}
+
+.user-calendar-day.free {
+    border-style:dashed;
+    color:var(--muted);
+}
+
+.user-calendar-day.pending {
+    border-color:rgba(255,177,66,0.5);
+    background:rgba(255,177,66,0.08);
+}
+
+.user-calendar-day.approved {
+    border-color:rgba(34,197,94,0.45);
+    background:rgba(34,197,94,0.08);
+}
+
+.user-calendar-day.rejected {
+    border-color:rgba(248,113,113,0.45);
+    background:rgba(248,113,113,0.08);
+}
+
+.user-calendar-day.past {
+    background:linear-gradient(135deg, rgba(31,34,36,0.03), rgba(31,34,36,0.08));
+    border-color:rgba(31,34,36,0.15);
+    color:var(--muted);
+}
+
+.user-calendar-day.past .day-number {
+    color:var(--muted);
+}
+
+.user-calendar-day.past ul span {
+    color:var(--dark);
+    opacity:0.75;
+}
+
+.user-calendar-day.past .status-pill {
+    opacity:0.85;
+}
+
+.user-calendar-day.empty {
+    border:none;
+    background:transparent;
+}
+
+.user-calendar-day ul {
+    list-style:none;
+    margin:0;
+    padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    font-size:12px;
+}
+
+.user-calendar-day li {
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+    align-items:center;
+}
+
+.user-calendar-legend {
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+}
+
+.status-pill {
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:4px 12px;
+    border-radius:12px;
+    font-size:12px;
+    font-weight:600;
+}
+
+.status-pill.pending {
+    background:rgba(255,177,66,0.25);
+    color:#b05a00;
+}
+
+.status-pill.approved {
+    background:rgba(34,197,94,0.25);
+    color:#0f5132;
+}
+
+.status-pill.rejected {
+    background:rgba(248,113,113,0.25);
+    color:#b91c1c;
+}
+
+.upcoming-block {
+    border-top:1px solid rgba(31,34,36,0.08);
+    padding-top:12px;
+}
+
+.upcoming-list {
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    margin-top:12px;
+}
+
+.upcoming-item {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:16px;
+    border:1px solid rgba(31,34,36,0.08);
+    border-radius:20px;
+    padding:12px 16px;
+    background:white;
+}
+
 @media (max-width:1100px) {
     .dashboard-grid {
         grid-template-columns:1fr;
