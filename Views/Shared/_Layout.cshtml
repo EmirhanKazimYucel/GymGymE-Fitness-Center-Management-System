@@ -11,15 +11,23 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Playfair+Display:wght@600&display=swap">
     @RenderSection("Styles", required: false)
 </head>
-@{
-    var bodyClass = ViewData["BodyClass"] as string ?? string.Empty;
-}
-<body class="@bodyClass">
-    <header class="gymgyme-header">
-        <div class="gymgyme-logo-wrapper">
-            <a asp-controller="Home" asp-action="Index" class="gymgyme-logo-link" aria-label="Ana sayfa">
-                <img src="~/images/login-logo.png" alt="gymgyme" class="gymgyme-logo-img" />
-            </a>
+<body>
+    <header class="fergus-header">
+        <div class="fergus-nav">
+            <div class="fergus-nav-group">
+                <a class="fergus-pill" asp-area="" asp-controller="Home" asp-action="Index">Market</a>
+                <a class="fergus-link" asp-area="" asp-controller="Home" asp-action="Index">Flyer</a>
+                <a class="fergus-link" asp-area="" asp-controller="Home" asp-action="Privacy">Business</a>
+                <a class="fergus-link" href="#">About us ▾</a>
+            </div>
+            <div class="fergus-logo">gymgyme</div>
+            <div class="fergus-nav-group">
+                <a class="fergus-link" href="#">Blog</a>
+                <a class="fergus-link" href="#">FAQ</a>
+                <a class="fergus-link" href="#">Contact</a>
+                <a class="fergus-link" href="#">FR</a>
+                <a class="fergus-cta" asp-area="" asp-controller="Account" asp-action="Login">Connection</a>
+            </div>
         </div>
     </header>
     <div class="container">

@@ -3,7 +3,8 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - BarbieFit</title>
+    <title>@ViewData["Title"] - WebProje</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
 </head>
 @{
@@ -13,7 +14,7 @@
 <body class="dashboard-body">
     <div class="dashboard-shell">
         <aside class="dashboard-sidebar">
-            <div class="brand-circle">B</div>
+            <div class="brand-circle">V</div>
             <nav class="sidebar-nav">
                 <a class="sidebar-btn @(currentController == "Dashboard" ? "active" : string.Empty)" asp-controller="Dashboard" asp-action="Index" title="Panel">
                     <span class="dot"></span>

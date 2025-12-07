@@ -90,6 +90,7 @@ C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\refint\WebProje.dll
 C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\WebProje.pdb
 C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\WebProje.genruntimeconfig.cache
 C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\ref\WebProje.dll
+C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\compressed\27jwtkucg9-c0e3zoxfae.gz
 C:\Users\t1o4m\Desktop\WebProje\bin\Debug\net9.0\Microsoft.EntityFrameworkCore.dll
 C:\Users\t1o4m\Desktop\WebProje\bin\Debug\net9.0\Microsoft.EntityFrameworkCore.Abstractions.dll
 C:\Users\t1o4m\Desktop\WebProje\bin\Debug\net9.0\Microsoft.EntityFrameworkCore.Relational.dll
@@ -189,9 +190,8 @@ C:\Users\t1o4m\Desktop\WebProje\bin\Debug\net9.0\ru\Microsoft.CodeAnalysis.Works
 C:\Users\t1o4m\Desktop\WebProje\bin\Debug\net9.0\tr\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
 C:\Users\t1o4m\Desktop\WebProje\bin\Debug\net9.0\zh-Hans\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
 C:\Users\t1o4m\Desktop\WebProje\bin\Debug\net9.0\zh-Hant\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\compressed\4pta1yyqfm-j6m26xpwta.gz
 C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\compressed\i2ja5uwaj0-o6qmz1xomo.gz
 C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\compressed\4cl2xaruea-pzyj0bji03.gz
 C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\compressed\eyke8loawa-pzyj0bji03.gz
-C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\compressed\4pta1yyqfm-0a9vyj0whg.gz
-C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\compressed\27jwtkucg9-8d7wybas29.gz
-C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\compressed\01epimt87x-opn5h8e9kr.gz
+c:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\compressed\01epimt87x-2u4q3ej83g.gz
