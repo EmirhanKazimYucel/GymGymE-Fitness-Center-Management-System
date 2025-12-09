@@ -407,68 +407,6 @@
         .calendar-day li {
             list-style:disc;
         }
-        .api-toolbar {
-            display:grid;
-            grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
-            gap:16px;
-            margin-top:18px;
-        }
-        .api-toolbar label {
-            font-size:12px;
-            text-transform:uppercase;
-            display:block;
-            margin-bottom:6px;
-            letter-spacing:0.05em;
-            color:#94a3b8;
-        }
-        .api-toolbar input {
-            width:100%;
-            border-radius:10px;
-            border:1px solid rgba(148,163,184,0.4);
-            background:#0f1215;
-            color:white;
-            padding:10px 12px;
-            font-family:inherit;
-        }
-        .api-actions {
-            display:flex;
-            flex-wrap:wrap;
-            gap:12px;
-            margin-top:18px;
-        }
-        .cta-btn.ghost {
-            background:transparent;
-            color:#9AD734;
-            border:1px solid rgba(154,215,52,0.5);
-        }
-        .api-status {
-            padding:12px 14px;
-            border-radius:12px;
-            background:rgba(148,163,184,0.12);
-            border:1px solid rgba(148,163,184,0.25);
-            margin-bottom:16px;
-            font-size:14px;
-        }
-        .api-status[data-tone="loading"] {
-            border-color:rgba(59,130,246,0.4);
-            color:#93c5fd;
-        }
-        .api-status[data-tone="success"] {
-            border-color:rgba(74,222,128,0.4);
-            color:#86efac;
-        }
-        .api-status[data-tone="error"] {
-            border-color:rgba(248,113,113,0.5);
-            color:#fecaca;
-        }
-        .api-table-wrapper {
-            overflow:auto;
-        }
-        .empty-state td {
-            text-align:center;
-            padding:24px 12px;
-            color:#94a3b8;
-        }
     </style>
 </head>
 <body>
@@ -483,7 +421,6 @@
             <button type="button" data-target="appointments">Randevular</button>
             <button type="button" data-target="services">Hizmetler</button>
             <button type="button" data-target="coaches">Antrenörler</button>
-            <button type="button" data-target="coach-api">API · Antrenörler</button>
             <button type="button" data-target="schedule">Planlayıcı</button>
         </nav>
     </aside>
@@ -827,48 +764,6 @@
                 </form>
             </section>
         </div>
-        <div class="panel-section" data-section="coach-api">
-            <section class="admin-card">
-                <h3>REST API · Antrenör Arşivi</h3>
-                <p>Bu sayfa doğrudan <code>/api/coaches</code> ve <code>/api/coaches/available</code> uçlarıyla konuşur. LINQ ile süzülen JSON sonuçlarını görselleştirir.</p>
-                <div class="api-toolbar">
-                    <div>
-                        <label for="apiDateInput">Tarih</label>
-                        <input type="date" id="apiDateInput" />
-                    </div>
-                    <div>
-                        <label for="apiSlotInput">Saat Aralığı</label>
-                        <input type="text" id="apiSlotInput" placeholder="Örn: 10:00 - 11:00" />
-                    </div>
-                </div>
-                <div class="api-actions">
-                    <button type="button" class="cta-btn" id="apiFetchAll">Tüm Antrenörleri Getir</button>
-                    <button type="button" class="cta-btn ghost" id="apiFetchAvailable">Bu Tarihte Müsait Olanları Listele</button>
-                </div>
-                <small>Örnek istek: <code>/api/coaches/available?date=2025-12-09&amp;timeSlot=10:00-11:00</code></small>
-            </section>
-            <section class="admin-card">
-                <h3>API Yanıtı</h3>
-                <div id="apiCoachStatus" class="api-status" data-tone="muted">Henüz istek yapılmadı.</div>
-                <div class="api-table-wrapper">
-                    <table class="admin-table">
-                        <thead>
-                            <tr>
-                                <th>Ad</th>
-                                <th>Uzmanlık</th>
-                                <th>Hizmetler</th>
-                                <th>Not</th>
-                            </tr>
-                        </thead>
-                        <tbody id="apiCoachTableBody">
-                            <tr class="empty-state">
-                                <td colspan="4">Veri bekleniyor.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </div>
         <div class="panel-section" data-section="schedule">
             <section class="admin-card">
                 <h3>Müsaitlik Takvimi</h3>
@@ -1058,147 +953,6 @@
             const defaultTarget = document.querySelector('.sidebar-nav button.active')?.dataset.target
                 ?? sections[0]?.dataset.section;
             activate(defaultTarget);
-        })();
-    </script>
-    <script>
-        (() => {
-            const allButton = document.getElementById('apiFetchAll');
-            const availableButton = document.getElementById('apiFetchAvailable');
-            const statusEl = document.getElementById('apiCoachStatus');
-            const tableBody = document.getElementById('apiCoachTableBody');
-            const dateInput = document.getElementById('apiDateInput');
-            const slotInput = document.getElementById('apiSlotInput');
-
-            if (!allButton || !statusEl || !tableBody) {
-                return;
-            }
-
-            const getString = (obj, ...keys) => {
-                if (!obj) {
-                    return undefined;
-                }
-                for (const key of keys) {
-                    const value = obj[key];
-                    if (value !== undefined && value !== null && String(value).length > 0) {
-                        return value;
-                    }
-                }
-                return undefined;
-            };
-
-            const getArray = (obj, ...keys) => {
-                if (!obj) {
-                    return [];
-                }
-                for (const key of keys) {
-                    const value = obj[key];
-                    if (Array.isArray(value) && value.length > 0) {
-                        return value;
-                    }
-                }
-                return [];
-            };
-
-            const setStatus = (message, tone = 'muted') => {
-                statusEl.dataset.tone = tone;
-                statusEl.textContent = message;
-            };
-
-            const renderRows = (rows) => {
-                if (!rows || rows.length === 0) {
-                    tableBody.innerHTML = '<tr class="empty-state"><td colspan="4">Sonuç bulunamadı.</td></tr>';
-                    return;
-                }
-                const fragment = document.createDocumentFragment();
-                const createCell = (text) => {
-                    const td = document.createElement('td');
-                    td.textContent = text && text.length > 0 ? text : '-';
-                    return td;
-                };
-                rows.forEach(row => {
-                    const tr = document.createElement('tr');
-                    const fullName = getString(row, 'fullName', 'FullName');
-                    const expertise = getString(row, 'expertiseTags', 'ExpertiseTags');
-                    const servicesList = getArray(row, 'services', 'Services');
-                    tr.appendChild(createCell(fullName ?? '-'));
-                    tr.appendChild(createCell(expertise ?? '-'));
-                    const services = servicesList.length > 0 ? servicesList.join(', ') : '-';
-                    tr.appendChild(createCell(services));
-                    const requestedDate = getString(row, 'requestedDate', 'RequestedDate');
-                    const requestedSlot = getString(row, 'requestedSlot', 'RequestedSlot');
-                    const bio = getString(row, 'bio', 'Bio');
-                    const detail = requestedDate
-                        ? `${requestedDate}${requestedSlot ? ` · ${requestedSlot}` : ''}`
-                        : (bio ?? '-');
-                    tr.appendChild(createCell(detail));
-                    fragment.appendChild(tr);
-                });
-                tableBody.innerHTML = '';
-                tableBody.appendChild(fragment);
-            };
-
-            const fetchJson = async (url) => {
-                const response = await fetch(url, {
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
-                if (!response.ok) {
-                    const payload = await response.text();
-                    throw new Error(payload || 'Sunucu isteği başarısız oldu.');
-                }
-                return response.json();
-            };
-
-            const ensureDefaultDate = () => {
-                if (!dateInput || dateInput.value) {
-                    return;
-                }
-                const today = new Date();
-                const iso = today.toISOString().split('T')[0];
-                dateInput.value = iso;
-            };
-
-            allButton.addEventListener('click', async () => {
-                setStatus('Antrenörler yükleniyor...', 'loading');
-                try {
-                    const data = await fetchJson('/api/coaches');
-                    renderRows(data);
-                    setStatus(`${data.length} antrenör listelendi.`, 'success');
-                }
-                catch (error) {
-                    setStatus(error.message, 'error');
-                }
-            });
-
-            if (availableButton && dateInput && slotInput) {
-                availableButton.addEventListener('click', async () => {
-                    const dateValue = dateInput.value;
-                    const slotValue = slotInput.value.trim();
-                    if (!dateValue || !slotValue) {
-                        setStatus('Tarih ve saat aralığı alanları zorunludur.', 'error');
-                        return;
-                    }
-                    setStatus('Müsait koçlar aranıyor...', 'loading');
-                    const params = new URLSearchParams({
-                        date: dateValue,
-                        timeSlot: slotValue
-                    });
-                    try {
-                        const data = await fetchJson(`/api/coaches/available?${params.toString()}`);
-                        renderRows(data);
-                        setStatus(data.length > 0
-                            ? `${data.length} koç belirtilen aralıkta müsait.`
-                            : 'Bu aralıkta uygun koç yok.', 'success');
-                    }
-                    catch (error) {
-                        setStatus(error.message, 'error');
-                    }
-                });
-            }
-
-            ensureDefaultDate();
-            allButton.click();
         })();
     </script>
 </body>
