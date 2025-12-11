@@ -277,9 +277,8 @@ public class AdminController : Controller
             })
             .ToList();
 
-        var today = DateOnly.FromDateTime(DateTime.Today);
         var approvedAppointments = await _context.AppointmentRequests
-            .Where(a => a.Status == AppointmentStatus.Approved && a.Date >= today)
+            .Where(a => a.Status == AppointmentStatus.Approved)
             .OrderBy(a => a.Coach)
             .ThenBy(a => a.Date)
             .ThenBy(a => a.TimeSlot)
@@ -323,7 +322,8 @@ public class AdminController : Controller
             Services = services,
             NewCoach = coachForm ?? new NewCoachInputModel(),
             NewService = serviceForm ?? new NewServiceInputModel(),
-            CoachSchedules = schedule
+            CoachSchedules = schedule,
+            BookingTimeSlots = BookingTimeSlots.All
         };
     }
 

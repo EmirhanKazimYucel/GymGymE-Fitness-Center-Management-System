@@ -27,4 +27,11 @@ public class AppUser
     public string Role { get; set; } = "User";
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+
+    public double? HeightCm { get; set; }
+
+    public double? WeightKg { get; set; }
+
+    [MaxLength(256)]
+    public string? AvatarPath { get; set; }
 }

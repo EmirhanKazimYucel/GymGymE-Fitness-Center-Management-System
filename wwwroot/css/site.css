@@ -31,75 +31,52 @@ body {
 }
 
 :root {
-  --fergus-bg:#f8f4ed;
-  --fergus-border:#e1d7c7;
-  --fergus-text:#2b2621;
-  --fergus-muted:#6c6259;
+  --gymgyme-bg:#f8f4ed;
+  --gymgyme-border:#e3d9c9;
 }
 
-.fergus-header {
-  background:var(--fergus-bg);
-  border-bottom:1px solid var(--fergus-border);
-  padding:16px 32px;
+.gymgyme-header {
+  background:var(--gymgyme-bg) url("/images/login-bg.png") center/cover;
+  border-bottom:1px solid var(--gymgyme-border);
+  padding:20px 0;
 }
 
-.fergus-nav {
-  max-width:1140px;
+.gymgyme-logo-wrapper {
+  max-width:1200px;
   margin:0 auto;
   display:flex;
+  justify-content:center;
+}
+
+.gymgyme-logo-link {
+  display:inline-flex;
   align-items:center;
-  justify-content:space-between;
-  gap:32px;
-  font-family:'Poppins', 'Inter', sans-serif;
-  color:var(--fergus-text);
-}
-
-.fergus-nav-group {
-  display:flex;
-  align-items:center;
-  gap:18px;
-}
-
-.fergus-pill {
-  border:1px solid var(--fergus-border);
-  border-radius:999px;
-  padding:6px 16px;
-  background:white;
-  font-weight:600;
+  justify-content:center;
   text-decoration:none;
-  color:var(--fergus-text);
 }
 
-.fergus-link {
-  text-decoration:none;
-  color:var(--fergus-muted);
-  font-weight:500;
-  font-size:15px;
+.gymgyme-logo-img {
+  max-width:240px;
+  height:auto;
+  display:block;
 }
 
-.fergus-logo {
-  font-family:'Playfair Display', 'Times New Roman', serif;
-  font-size:28px;
-  letter-spacing:0.05em;
-}
-
-.fergus-cta {
-  border:1px solid var(--fergus-text);
-  border-radius:12px;
-  padding:6px 18px;
-  text-decoration:none;
-  color:var(--fergus-text);
-  font-weight:600;
-}
-
-@media (max-width: 768px) {
-  .fergus-nav {
-    flex-direction:column;
-    gap:16px;
+@media (max-width:600px) {
+  .gymgyme-logo-img {
+    max-width:180px;
   }
+}
 
-  .fergus-nav-group {
-    flex-wrap:wrap;
-    justify-content:center;
-  }
+body.login-body {
+  background:#76b6ff url("/images/login-bg.png") center/cover fixed;
+}
+
+body.login-body .container {
+  max-width:100%;
+  padding-left:0;
+  padding-right:0;
+}
+
+body.login-body main {
+  padding:0;
 }

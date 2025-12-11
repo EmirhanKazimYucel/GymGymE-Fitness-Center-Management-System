@@ -14,8 +14,6 @@ public class AppointmentController : Controller
 {
     private readonly FitnessContext _context;
 
-    private static readonly IReadOnlyList<string> TimeSlots = new[] { "09:00", "11:00", "14:30", "16:00", "18:00" };
-
     public AppointmentController(FitnessContext context)
     {
         _context = context;
@@ -92,29 +90,44 @@ public class AppointmentController : Controller
             return View(model);
         }
 
-        var userSlotConflict = await _context.AppointmentRequests
-            .AsNoTracking()
-            .AnyAsync(a => a.Email == user.Email
-                && a.Date == model.SelectedDate
-                && a.TimeSlot == model.SelectedTime
-                && a.Status != AppointmentStatus.Rejected);
-
-        if (userSlotConflict)
+        var requestedDuration = NormalizeDuration(selectedService.DurationMinutes);
+        if (!BookingTimeSlots.TryBuildInterval(model.SelectedTime, requestedDuration, out var requestedStart, out var requestedEnd))
         {
-            ModelState.AddModelError(string.Empty, $"{model.SelectedDate:dd MMMM} {model.SelectedTime} dilimi için zaten bir talebiniz bulunuyor. Lütfen farklı bir saat seçin.");
+            ModelState.AddModelError(nameof(model.SelectedTime), "Seçilen saat aralığı desteklenmiyor.");
             return View(model);
         }
 
-        var slotConflictExists = await _context.AppointmentRequests
-            .AsNoTracking()
-            .AnyAsync(a => a.Coach == model.SelectedCoach
-                && a.Date == model.SelectedDate
-                && a.TimeSlot == model.SelectedTime
-                && a.Status != AppointmentStatus.Rejected);
+        var durationLookup = await BuildServiceDurationLookupAsync();
 
-        if (slotConflictExists)
+        var userSlotConflict = await _context.AppointmentRequests
+            .AsNoTracking()
+            .Where(a => a.Email == user.Email
+                && a.Date == model.SelectedDate
+                && a.Status != AppointmentStatus.Rejected)
+            .Select(a => new { a.TimeSlot, a.ServiceName })
+            .ToListAsync();
+
+        if (userSlotConflict.Any(entry =>
+                BookingTimeSlots.TryBuildInterval(entry.TimeSlot, ResolveDuration(entry.ServiceName, durationLookup), out var start, out var end)
+                && BookingTimeSlots.Overlaps(start, end, requestedStart, requestedEnd)))
         {
-            ModelState.AddModelError(string.Empty, $"{model.SelectedCoach} koçu {model.SelectedDate:dd MMMM} {model.SelectedTime} slotunda dolu. Lütfen farklı bir zaman seçin.");
+            ModelState.AddModelError(string.Empty, $"{model.SelectedDate:dd MMMM} tarihindeki mevcut randevunuz seçilen saat aralığıyla çakışıyor.");
+            return View(model);
+        }
+
+        var coachConflicts = await _context.AppointmentRequests
+            .AsNoTracking()
+            .Where(a => a.Coach == model.SelectedCoach
+                && a.Date == model.SelectedDate
+                && a.Status != AppointmentStatus.Rejected)
+            .Select(a => new { a.TimeSlot, a.ServiceName })
+            .ToListAsync();
+
+        if (coachConflicts.Any(entry =>
+                BookingTimeSlots.TryBuildInterval(entry.TimeSlot, ResolveDuration(entry.ServiceName, durationLookup), out var start, out var end)
+                && BookingTimeSlots.Overlaps(start, end, requestedStart, requestedEnd)))
+        {
+            ModelState.AddModelError(string.Empty, $"{model.SelectedCoach} koçu {model.SelectedDate:dd MMMM} için seçilen aralıkta dolu.");
             return View(model);
         }
 
@@ -193,7 +206,7 @@ public class AppointmentController : Controller
             model.SelectedCoach = coaches.First();
         }
 
-        model.TimeSlots = TimeSlots;
+        model.TimeSlots = BookingTimeSlots.All;
         model.UserFullName = BuildUserDisplayName(user);
         model.UserEmail = user.Email;
         model.UserPhone = user.PhoneNumber;
@@ -207,7 +220,8 @@ public class AppointmentController : Controller
             {
                 Id = s.Id,
                 Name = s.Name,
-                Description = s.Description
+                Description = s.Description,
+                DurationMinutes = NormalizeDuration(s.DurationMinutes)
             })
             .ToListAsync();
 
@@ -242,6 +256,28 @@ public class AppointmentController : Controller
             .Where(part => !string.IsNullOrWhiteSpace(part));
         var joined = string.Join(" ", nameParts);
         return string.IsNullOrWhiteSpace(joined) ? user.Email : joined;
+    }
+
+    private static int NormalizeDuration(int? minutes)
+    {
+        return minutes.HasValue && minutes.Value > 0 ? minutes.Value : 60;
+    }
+
+    private static int ResolveDuration(string serviceName, IReadOnlyDictionary<string, int> durationLookup)
+    {
+        if (durationLookup.TryGetValue(serviceName, out var duration))
+        {
+            return duration;
+        }
+
+        return 60;
+    }
+
+    private async Task<Dictionary<string, int>> BuildServiceDurationLookupAsync()
+    {
+        return await _context.Services
+            .Select(s => new { s.Name, Duration = NormalizeDuration(s.DurationMinutes) })
+            .ToDictionaryAsync(x => x.Name, x => x.Duration, StringComparer.OrdinalIgnoreCase);
     }
 
     private sealed record ServiceData(List<ServiceOption> Services, Dictionary<int, List<string>> CoachMap);

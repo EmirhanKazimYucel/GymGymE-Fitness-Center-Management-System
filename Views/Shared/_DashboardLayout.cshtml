@@ -3,21 +3,27 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - WebProje</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <title>@ViewData["Title"] - BarbieFit</title>
     <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
 </head>
 @{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
 }
 
 <body class="dashboard-body">
     <div class="dashboard-shell">
         <aside class="dashboard-sidebar">
-            <div class="brand-circle">V</div>
+            <div class="brand-circle">B</div>
             <nav class="sidebar-nav">
-                <a class="sidebar-btn @(currentController == "Dashboard" ? "active" : string.Empty)" asp-controller="Dashboard" asp-action="Index" title="Panel">
+                <a class="sidebar-btn @(currentController == "Dashboard" && currentAction == "Index" ? "active" : string.Empty)" asp-controller="Dashboard" asp-action="Index" title="Panel">
                     <span class="dot"></span>
+                </a>
+                <a class="sidebar-btn @(currentController == "Dashboard" && currentAction == "Profile" ? "active" : string.Empty)" asp-controller="Dashboard" asp-action="Profile" title="Profil">
+                    <span class="icon">💖</span>
+                </a>
+                <a class="sidebar-btn @(currentController == "Dashboard" && currentAction == "DietPlan" ? "active" : string.Empty)" asp-controller="Dashboard" asp-action="DietPlan" title="Diyet Planı">
+                    <span class="icon">🥗</span>
                 </a>
                 <a class="sidebar-btn @(currentController == "Appointment" ? "active" : string.Empty)" asp-controller="Appointment" asp-action="Book" title="Randevu">
                     <span class="icon">📅</span>

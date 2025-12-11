@@ -396,6 +396,10 @@
             background:rgba(248,113,113,0.12);
             border-color:rgba(248,113,113,0.4);
         }
+        .calendar-day.past {
+            opacity:0.55;
+            filter:grayscale(0.6);
+        }
         .calendar-day.empty {
             border:none;
             background:transparent;
@@ -421,7 +425,8 @@
             letter-spacing:0.05em;
             color:#94a3b8;
         }
-        .api-toolbar input {
+        .api-toolbar input,
+        .api-toolbar select {
             width:100%;
             border-radius:10px;
             border:1px solid rgba(148,163,184,0.4);
@@ -429,6 +434,7 @@
             color:white;
             padding:10px 12px;
             font-family:inherit;
+            appearance:none;
         }
         .api-actions {
             display:flex;
@@ -538,7 +544,7 @@
                                         <small>@appointment.PhoneNumber</small>
                                     }
                                 </td>
-                                <td>@appointment.Date:dd MMM yyyy<br />@appointment.TimeSlot</td>
+                                <td>@appointment.Date.ToString("dd MMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("tr-TR"))<br />@appointment.TimeSlot</td>
                                 <td>@appointment.Coach</td>
                                 <td>@appointment.Notes</td>
                                 <td>
@@ -585,7 +591,7 @@
                             {
                                 <tr>
                                     <td>@decision.FullName</td>
-                                    <td>@decision.Date:dd MMM yyyy - @decision.TimeSlot</td>
+                                    <td>@decision.Date.ToString("dd MMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("tr-TR")) - @decision.TimeSlot</td>
                                     <td>@decision.Coach</td>
                                     <td>
                                         @{
@@ -602,36 +608,7 @@
         </div>
         <div class="panel-section" data-section="services">
             <div class="admin-grid">
-                <section class="admin-card">
-                    <h3>Hizmet Tanımları</h3>
-                    <p>Her hizmet için süre, ücret ve kapasite bilgilerini tutun.</p>
-                    <table class="admin-table">
-                        <thead>
-                            <tr>
-                                <th>Tür</th>
-                                <th>Süre</th>
-                                <th>Ücret</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Fitness (PT)</td>
-                                <td>60 dk</td>
-                                <td>₺600</td>
-                            </tr>
-                            <tr>
-                                <td>Yoga Grup</td>
-                                <td>45 dk</td>
-                                <td>₺280</td>
-                            </tr>
-                            <tr>
-                                <td>Pilates Reformer</td>
-                                <td>55 dk</td>
-                                <td>₺520</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </section>
+
                 <section class="admin-card">
                     <h3>Hizmetler</h3>
                     @if (!Model.Services.Any())
@@ -837,15 +814,37 @@
                         <input type="date" id="apiDateInput" />
                     </div>
                     <div>
-                        <label for="apiSlotInput">Saat Aralığı</label>
-                        <input type="text" id="apiSlotInput" placeholder="Örn: 10:00 - 11:00" />
+                        <label for="apiTimeSlotSelect">Saat</label>
+                        <select id="apiTimeSlotSelect">
+                            @foreach (var slot in Model.BookingTimeSlots)
+                            {
+                                <option value="@slot">@slot</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label for="apiServiceSelect">Hizmet</label>
+                        <select id="apiServiceSelect" @(Model.Services.Any() ? null : "disabled")>
+                            @if (Model.Services.Any())
+                            {
+                                foreach (var service in Model.Services)
+                                {
+                                    var durationText = service.DurationMinutes is null ? "" : $" ({service.DurationMinutes} dk)";
+                                    <option value="@service.Id">@service.Name@durationText</option>
+                                }
+                            }
+                            else
+                            {
+                                <option value="">Önce hizmet ekleyin</option>
+                            }
+                        </select>
                     </div>
                 </div>
                 <div class="api-actions">
                     <button type="button" class="cta-btn" id="apiFetchAll">Tüm Antrenörleri Getir</button>
-                    <button type="button" class="cta-btn ghost" id="apiFetchAvailable">Bu Tarihte Müsait Olanları Listele</button>
+                    <button type="button" class="cta-btn ghost" id="apiFetchAvailable" @(Model.Services.Any() ? null : "disabled")>Bu Tarihte Müsait Olanları Listele</button>
                 </div>
-                <small>Örnek istek: <code>/api/coaches/available?date=2025-12-09&amp;timeSlot=10:00-11:00</code></small>
+                <small>Örnek istek: <code>/api/coaches/available?date=2025-12-09&amp;timeSlot=10:00&amp;serviceId=1</code></small>
             </section>
             <section class="admin-card">
                 <h3>API Yanıtı</h3>
@@ -881,6 +880,7 @@
                     var firstDayOffset = ((int)monthStart.DayOfWeek + 6) % 7;
                     var totalCells = firstDayOffset + daysInMonth;
                     var weeks = (int)Math.Ceiling(totalCells / 7.0);
+                    var todayIso = DateOnly.FromDateTime(now).ToString("yyyy-MM-dd");
                 }
                 @if (!Model.CoachSchedules.Any())
                 {
@@ -912,7 +912,7 @@
                             {
                                 date = slot.Date.ToString("yyyy-MM-dd"),
                                 time = slot.TimeSlot,
-                                member = slot.Member,
+                                coach = cs.Coach,
                                 service = slot.Service
                             })
                         }),
@@ -936,7 +936,8 @@
                                 firstDayOffset: @firstDayOffset,
                                 daysInMonth: @daysInMonth,
                                 totalCells: @weeks * 7,
-                                monthLabel: '@monthStart.ToString("MMMM yyyy", culture)'
+                                monthLabel: '@monthStart.ToString("MMMM yyyy", culture)',
+                                todayIso: '@todayIso'
                             };
                             monthTitle.textContent = config.monthLabel;
 
@@ -972,7 +973,13 @@
                                     const dateKey = `${config.monthPrefix}-${String(dayNumber).padStart(2, '0')}`;
                                     const daySlots = map[dateKey] || [];
                                     const isBusy = daySlots.length > 0;
-                                    cellDiv.className = `calendar-day ${isBusy ? 'booked' : 'available'}`;
+                                    const isPast = dateKey < config.todayIso;
+                                    const classes = ['calendar-day'];
+                                    classes.push(isBusy ? 'booked' : 'available');
+                                    if (isPast) {
+                                        classes.push('past');
+                                    }
+                                    cellDiv.className = classes.join(' ');
                                     const dayLabel = document.createElement('span');
                                     dayLabel.className = 'day-number';
                                     dayLabel.textContent = dayNumber.toString();
@@ -983,16 +990,14 @@
                                         daySlots.sort((a, b) => (a.time || '').localeCompare(b.time || '', 'tr-TR', { numeric: true }));
                                         daySlots.forEach(slot => {
                                             const item = document.createElement('li');
-                                            item.textContent = `${slot.time ?? ''} · ${slot.member ?? ''} (${slot.service ?? ''})`;
+                                            item.textContent = `${slot.time ?? ''} · ${slot.coach ?? ''} (${slot.service ?? ''})`;
                                             list.appendChild(item);
                                         });
                                         cellDiv.appendChild(list);
                                     }
                                     else
                                     {
-                                        const free = document.createElement('small');
-                                        free.textContent = 'Müsait';
-                                        cellDiv.appendChild(free);
+                                        // intentionally leave empty for cleaner UI
                                     }
                                     grid.appendChild(cellDiv);
                                 }
@@ -1011,27 +1016,7 @@
                     </script>
                 }
             </section>
-            <div class="admin-grid">
-                <section class="admin-card">
-                    <h3>Salon Çalışma Saatleri</h3>
-                    <p>Haftanın her günü için açılış/ kapanış saatlerini tanımlayın, resmi tatil istisnalarını planlayın.</p>
-                    <ul>
-                        <li>Hafta içi: 07:00 - 23:00</li>
-                        <li>Hafta sonu: 08:00 - 21:00</li>
-                    </ul>
-                    <button class="cta-btn">Saatleri Düzenle</button>
-                </section>
-                <section class="admin-card">
-                    <h3>Müsaitlik Planlayıcı</h3>
-                    <p>Her antrenör için zaman blokları oluşturup üyelerin rezervasyon yapacağı boşlukları açın.</p>
-                    <ul>
-                        <li>Mert · Pazartesi 10:00-14:00 (5 slot)</li>
-                        <li>Selin · Çarşamba 18:00-21:00 (3 slot)</li>
-                        <li>Can · Cumartesi 09:00-13:00 (4 slot)</li>
-                    </ul>
-                    <button class="cta-btn">Yeni Slot Oluştur</button>
-                </section>
-            </div>
+
         </div>
     </main>
     <script>
@@ -1067,7 +1052,8 @@
             const statusEl = document.getElementById('apiCoachStatus');
             const tableBody = document.getElementById('apiCoachTableBody');
             const dateInput = document.getElementById('apiDateInput');
-            const slotInput = document.getElementById('apiSlotInput');
+            const slotSelect = document.getElementById('apiTimeSlotSelect');
+            const serviceSelect = document.getElementById('apiServiceSelect');
 
             if (!allButton || !statusEl || !tableBody) {
                 return;
@@ -1127,9 +1113,15 @@
                     const requestedDate = getString(row, 'requestedDate', 'RequestedDate');
                     const requestedSlot = getString(row, 'requestedSlot', 'RequestedSlot');
                     const bio = getString(row, 'bio', 'Bio');
-                    const detail = requestedDate
-                        ? `${requestedDate}${requestedSlot ? ` · ${requestedSlot}` : ''}`
-                        : (bio ?? '-');
+                    let detail;
+                    if (requestedDate) {
+                        const duration = row.requestedDurationMinutes ?? row.RequestedDurationMinutes;
+                        const slotLabel = requestedSlot ?? '-';
+                        detail = `${requestedDate} · ${slotLabel}${duration ? ` (${duration} dk)` : ''}`;
+                    }
+                    else {
+                        detail = bio ?? '-';
+                    }
                     tr.appendChild(createCell(detail));
                     fragment.appendChild(tr);
                 });
@@ -1171,18 +1163,20 @@
                 }
             });
 
-            if (availableButton && dateInput && slotInput) {
+            if (availableButton && dateInput && slotSelect && serviceSelect) {
                 availableButton.addEventListener('click', async () => {
                     const dateValue = dateInput.value;
-                    const slotValue = slotInput.value.trim();
-                    if (!dateValue || !slotValue) {
-                        setStatus('Tarih ve saat aralığı alanları zorunludur.', 'error');
+                    const slotValue = slotSelect.value;
+                    const serviceId = serviceSelect.value;
+                    if (!dateValue || !slotValue || !serviceId) {
+                        setStatus('Tarih, saat ve hizmet seçimleri zorunludur.', 'error');
                         return;
                     }
                     setStatus('Müsait koçlar aranıyor...', 'loading');
                     const params = new URLSearchParams({
                         date: dateValue,
-                        timeSlot: slotValue
+                        timeSlot: slotValue,
+                        serviceId: serviceId
                     });
                     try {
                         const data = await fetchJson(`/api/coaches/available?${params.toString()}`);

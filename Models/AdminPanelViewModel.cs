@@ -9,4 +9,5 @@ public class AdminPanelViewModel
     public NewCoachInputModel NewCoach { get; init; } = new();
     public NewServiceInputModel NewService { get; init; } = new();
     public IReadOnlyList<CoachScheduleItem> CoachSchedules { get; init; } = Array.Empty<CoachScheduleItem>();
+    public IReadOnlyList<string> BookingTimeSlots { get; init; } = Array.Empty<string>();
 }
