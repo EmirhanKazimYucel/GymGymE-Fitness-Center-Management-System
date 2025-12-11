@@ -1,0 +1,91 @@
+@model WebProje.Models.DietPlanViewModel
+@{
+    Layout = "_DashboardLayout";
+    ViewData["Title"] = "Diyet Planım";
+}
+
+<div class="diet-page">
+    <section class="profile-card diet-hero">
+        <div>
+            <p class="stat-label">Kişisel Diyet Planı</p>
+            <h1>@Model.UserFullName</h1>
+            <p>Vücut kitle indeksine göre BarbieFit tarafından hazırlanan günlük yönlendirmeler.</p>
+            <div class="diet-hero-stats">
+                <div>
+                    <small>BMI</small>
+                    <strong>@(Model.BodyMassIndex?.ToString("0.0") ?? "—")</strong>
+                    <span>@Model.BmiCategory</span>
+                </div>
+                <div>
+                    <small>Günlük Kalori</small>
+                    <strong>@Model.SuggestedCalories</strong>
+                    <span>kcal</span>
+                </div>
+                <div>
+                    <small>Su Hedefi</small>
+                    <strong>@Model.HydrationLiters.ToString("0.0") L</strong>
+                    <span>Günlük</span>
+                </div>
+            </div>
+        </div>
+        <div class="diet-hero-visual" aria-hidden="true"></div>
+    </section>
+
+    <section class="diet-grid">
+        <article class="diet-card macro-card">
+            <h2>Makro Dağılımı</h2>
+            <p>Enerjini dengede tutmak için önerilen yüzdeler.</p>
+            <div class="macro-bars">
+                <div class="macro-bar">
+                    <span>Karbonhidrat</span>
+                    <div class="macro-track">
+                        <div class="macro-fill" style="width:@Model.MacroSplit.CarbsPercent%;background:#ff80ab"></div>
+                    </div>
+                    <strong>@Model.MacroSplit.CarbsPercent%</strong>
+                </div>
+                <div class="macro-bar">
+                    <span>Protein</span>
+                    <div class="macro-track">
+                        <div class="macro-fill" style="width:@Model.MacroSplit.ProteinPercent%;background:#80cbc4"></div>
+                    </div>
+                    <strong>@Model.MacroSplit.ProteinPercent%</strong>
+                </div>
+                <div class="macro-bar">
+                    <span>Yağ</span>
+                    <div class="macro-track">
+                        <div class="macro-fill" style="width:@Model.MacroSplit.FatPercent%;background:#ffcc80"></div>
+                    </div>
+                    <strong>@Model.MacroSplit.FatPercent%</strong>
+                </div>
+            </div>
+        </article>
+
+        <article class="diet-card focus-card">
+            <h2>Bugün Odaklan</h2>
+            <ul>
+                @foreach (var tip in Model.FocusTips)
+                {
+                    <li>@tip</li>
+                }
+            </ul>
+        </article>
+
+        <article class="diet-card meals-card">
+            <h2>Örnek Öğünler</h2>
+            <div class="meal-list">
+                @foreach (var meal in Model.MealIdeas)
+                {
+                    <div class="meal-chip" style="border-color:@meal.Accent;box-shadow:0 8px 15px rgba(0,0,0,0.05);">
+                        <small>@meal.Meal</small>
+                        <p>@meal.Description</p>
+                    </div>
+                }
+            </div>
+        </article>
+    </section>
+
+    <div class="diet-actions">
+        <a class="action-btn diet-secondary" asp-action="Profile">Profilime Dön</a>
+        <a class="action-btn appointment-btn" asp-controller="Appointment" asp-action="Book">Koçumla Paylaş</a>
+    </div>
+</div>

@@ -1,0 +1,163 @@
+@model WebProje.Models.UserProfileViewModel
+@{
+    Layout = "_DashboardLayout";
+    var avatarUrl = Model.AvatarUrl ?? Url.Content("~/images/barbie.png");
+    ViewData["Title"] = "Profilim";
+}
+
+<div class="profile-wrapper">
+    @if (TempData["ProfileMessage"] is string profileMessage)
+    {
+        <div class="profile-alert">
+            @profileMessage
+        </div>
+    }
+
+    <section class="profile-card profile-intro">
+        <div class="avatar-preview">
+            <img src="@avatarUrl" alt="Profil fotoğrafı" />
+        </div>
+        <div>
+            <p class="stat-label">@Model.Email</p>
+            <h1>@Model.FirstName @Model.LastName</h1>
+            <p>BarbieFit evreninde kendinizi ifade edin, profilinizi güncel tutun ve koçunuzla paylaşın.</p>
+            <label class="upload-btn" for="AvatarUpload">
+                <span>Avatar Yükle</span>
+            </label>
+        </div>
+    </section>
+
+    <section class="profile-card profile-bio">
+        <div class="bmi-indicator">
+            <span>BMI</span>
+            <strong data-profile-bmi>@(Model.BodyMassIndex?.ToString("0.0") ?? "—")</strong>
+            <small data-profile-bmi-label>@Model.BmiCategory</small>
+        </div>
+        <div class="bmi-details">
+            <div>
+                <p class="stat-label">Boy</p>
+                <h3>@(Model.HeightCm?.ToString("0.0") ?? "-") cm</h3>
+            </div>
+            <div>
+                <p class="stat-label">Kilo</p>
+                <h3>@(Model.WeightKg?.ToString("0.0") ?? "-") kg</h3>
+            </div>
+            <div>
+                <p class="stat-label">Doğum Tarihi</p>
+                <h3>@(Model.BirthDate?.ToString("dd MMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("tr-TR")) ?? "Belirtilmedi")</h3>
+            </div>
+        </div>
+    </section>
+
+    <section class="profile-card diet-cta">
+        <div>
+            <p class="stat-label">Beslenme Çemberin</p>
+            <h2>Kişisel diyet planınızı oluşturun</h2>
+            <p>BMI verilerinize göre BarbieFit tarafından önerilen renkli tabakları ve makro dengesini keşfedin.</p>
+            <a class="action-btn diet-btn" asp-action="DietPlan">
+                Planımı Hazırla
+            </a>
+        </div>
+        <div class="diet-cta-visual">
+            <span class="bubble bubble-lg"></span>
+            <span class="bubble bubble-md"></span>
+            <span class="bubble bubble-sm"></span>
+        </div>
+    </section>
+
+    <section class="profile-card profile-form-card">
+        <h2>Profil Bilgileri</h2>
+        <form asp-action="Profile" method="post" enctype="multipart/form-data" class="profile-form">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+            <div class="profile-form-grid">
+                <label>
+                    <span>Ad</span>
+                    <input asp-for="FirstName" class="profile-input" />
+                    <span class="validation-text" asp-validation-for="FirstName"></span>
+                </label>
+                <label>
+                    <span>Soyad</span>
+                    <input asp-for="LastName" class="profile-input" />
+                    <span class="validation-text" asp-validation-for="LastName"></span>
+                </label>
+                <label>
+                    <span>E-posta</span>
+                    <input asp-for="Email" class="profile-input" readonly />
+                </label>
+                <label>
+                    <span>Telefon</span>
+                    <input asp-for="PhoneNumber" class="profile-input" />
+                    <span class="validation-text" asp-validation-for="PhoneNumber"></span>
+                </label>
+                <label>
+                    <span>Doğum Tarihi</span>
+                    <input asp-for="BirthDate" type="date" class="profile-input" />
+                    <span class="validation-text" asp-validation-for="BirthDate"></span>
+                </label>
+                <label>
+                    <span>Boy (cm)</span>
+                    <input asp-for="HeightCm" type="number" step="0.1" class="profile-input" />
+                    <span class="validation-text" asp-validation-for="HeightCm"></span>
+                </label>
+                <label>
+                    <span>Kilo (kg)</span>
+                    <input asp-for="WeightKg" type="number" step="0.1" class="profile-input" />
+                    <span class="validation-text" asp-validation-for="WeightKg"></span>
+                </label>
+                <label class="file-field">
+                    <span>Profil Fotoğrafı</span>
+                    <input asp-for="AvatarUpload" id="AvatarUpload" type="file" accept="image/*" class="profile-input profile-file-input" />
+                    <span class="validation-text" asp-validation-for="AvatarUpload"></span>
+                </label>
+            </div>
+            <div class="profile-actions">
+                <button type="submit" class="action-btn appointment-btn">Kaydet</button>
+            </div>
+        </form>
+    </section>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const heightField = document.getElementById('HeightCm');
+            const weightField = document.getElementById('WeightKg');
+            const bmiValue = document.querySelector('[data-profile-bmi]');
+            const bmiLabel = document.querySelector('[data-profile-bmi-label]');
+
+            if (!heightField || !weightField || !bmiValue || !bmiLabel) {
+                return;
+            }
+
+            const describeBmi = (bmi) => {
+                if (!bmi || Number.isNaN(bmi)) return '—';
+                if (bmi < 18.5) return 'Zayıf';
+                if (bmi < 25) return 'Normal';
+                if (bmi < 30) return 'Fazla kilolu';
+                return 'Obez';
+            };
+
+            const updateBmi = () => {
+                const height = parseFloat(heightField.value);
+                const weight = parseFloat(weightField.value);
+
+                if (!height || !weight) {
+                    bmiValue.textContent = '—';
+                    bmiLabel.textContent = '—';
+                    return;
+                }
+
+                const heightM = height / 100;
+                const bmi = weight / (heightM * heightM);
+                const rounded = Math.round(bmi * 10) / 10;
+                bmiValue.textContent = rounded.toFixed(1);
+                bmiLabel.textContent = describeBmi(rounded);
+            };
+
+            heightField.addEventListener('input', updateBmi);
+            weightField.addEventListener('input', updateBmi);
+        })();
+    </script>
+}

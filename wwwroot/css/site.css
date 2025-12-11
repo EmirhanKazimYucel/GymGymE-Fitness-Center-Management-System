@@ -1,0 +1,82 @@
+html {
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+
+body {
+  margin-bottom: 60px;
+}
+
+.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
+  color: var(--bs-secondary-color);
+  text-align: end;
+}
+
+.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
+  text-align: start;
+}
+
+:root {
+  --gymgyme-bg:#f8f4ed;
+  --gymgyme-border:#e3d9c9;
+}
+
+.gymgyme-header {
+  background:var(--gymgyme-bg) url("/images/login-bg.png") center/cover;
+  border-bottom:1px solid var(--gymgyme-border);
+  padding:20px 0;
+}
+
+.gymgyme-logo-wrapper {
+  max-width:1200px;
+  margin:0 auto;
+  display:flex;
+  justify-content:center;
+}
+
+.gymgyme-logo-link {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  text-decoration:none;
+}
+
+.gymgyme-logo-img {
+  max-width:240px;
+  height:auto;
+  display:block;
+}
+
+@media (max-width:600px) {
+  .gymgyme-logo-img {
+    max-width:180px;
+  }
+}
+
+body.login-body {
+  background:#76b6ff url("/images/login-bg.png") center/cover fixed;
+}
+
+body.login-body .container {
+  max-width:100%;
+  padding-left:0;
+  padding-right:0;
+}
+
+body.login-body main {
+  padding:0;
+}
