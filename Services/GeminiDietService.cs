@@ -30,12 +30,12 @@ public sealed class GeminiDietService : IGeminiDietService
         NumberHandling = JsonNumberHandling.AllowReadingFromString
     };
 
-    private const string SystemInstructionText = "Sen sertifikalı bir diyetisyensin. Türkçe yanıt ver ve klinik teşhis koyma. Sağlık risklerinde doktora yönlendir. Yanıtında sadece JSON kullan, açıklama ekleme.";
-    private static readonly SemaphoreSlim RateLimitGate = new(1, 1);
-    private static DateTimeOffset _lastRequestUtc = DateTimeOffset.MinValue;
-    private static readonly TimeSpan MinDelayBetweenRequests = TimeSpan.FromSeconds(4.1); // ~15 RPM
+        private const string SystemInstructionText = "Sen sertifikalı bir diyetisyensin. Türkçe yanıt ver ve klinik teşhis koyma. Sağlık risklerinde doktora yönlendir. Yanıtında sadece JSON kullan, açıklama ekleme.";
+        private static readonly SemaphoreSlim RateLimitGate = new(1, 1);
+        private static DateTimeOffset _lastRequestUtc = DateTimeOffset.MinValue;
+        private static readonly TimeSpan MinDelayBetweenRequests = TimeSpan.FromSeconds(4.1); // ~15 RPM
 
-    private const string ResponseSchema = """
+        private const string ResponseSchema = """
 {
   "planTitle": "Kısa ve motive edici başlık",
   "motivationMessage": "1-2 cümle motive edici mesaj",
@@ -298,30 +298,13 @@ public sealed class GeminiDietService : IGeminiDietService
             .FirstOrDefault(text => !string.IsNullOrWhiteSpace(text));
     }
 
-    // --- KRİTİK DÜZELTME BURADA YAPILDI ---
     private string BuildGeminiEndpoint()
     {
-        // 1. URL'i appsettings'e bakmaksızın "v1beta" olarak sabitliyoruz.
-        // Bu, "Not Found" hatasının en büyük sebebidir.
         var baseUrl = "https://generativelanguage.googleapis.com/v1beta";
-
-        // 2. Model adını alıyoruz
-        var model = _options.Model?.Trim();
-        if (string.IsNullOrWhiteSpace(model))
-        {
-             model = "gemini-1.5-flash-latest";
-        }
-
-        // 3. EĞER model "gemini-1.5-flash" ise (takma ad), bunu TAM SÜRÜM adıyla değiştiriyoruz.
-        // API bazen kısa ismi tanıyamıyor, bu yüzden "-latest" ekleyerek sorunu çözüyoruz.
-        if (model.Equals("gemini-1.5-flash", StringComparison.OrdinalIgnoreCase))
-        {
-            model = "gemini-1.5-flash-latest";
-        }
-
-        return $"{baseUrl}/models/{model}:generateContent?key={_options.ApiKey}";
+        var model = string.IsNullOrWhiteSpace(_options.Model) ? "gemini-1.5-flash" : _options.Model.Trim();
+        var key = _options.ApiKey;
+        return $"{baseUrl}/models/{model}:generateContent?key={key}";
     }
-    // ----------------------------------------
 
     private string BuildOpenAiEndpoint()
     {
@@ -510,9 +493,13 @@ public sealed class GeminiDietService : IGeminiDietService
     private sealed class AiErrorDetails
     {
         public int? Code { get; init; }
+
         public string? CodeText { get; init; }
+
         public string? Status { get; init; }
+
         public string? Type { get; init; }
+
         public string? Message { get; init; }
     }
 
