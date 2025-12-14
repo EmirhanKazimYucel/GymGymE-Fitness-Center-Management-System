@@ -194,4 +194,8 @@ C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\compressed\4cl2xaruea-pzyj0bji0
 C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\compressed\eyke8loawa-pzyj0bji03.gz
 C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\compressed\4pta1yyqfm-0a9vyj0whg.gz
 C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\compressed\27jwtkucg9-8d7wybas29.gz
-C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\compressed\01epimt87x-knvljsq6cc.gz
+C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\compressed\01epimt87x-4b6chi3z4i.gz
+C:\Users\t1o4m\Desktop\WebProje\bin\Debug\net9.0\OpenAI.dll
+C:\Users\t1o4m\Desktop\WebProje\bin\Debug\net9.0\System.ClientModel.dll
+C:\Users\t1o4m\Desktop\WebProje\bin\Debug\net9.0\System.Memory.Data.dll
+C:\Users\t1o4m\Desktop\WebProje\bin\Debug\net9.0\System.Net.ServerSentEvents.dll

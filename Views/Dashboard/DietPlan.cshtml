@@ -1,3 +1,4 @@
+@using System.Linq
 @model WebProje.Models.DietPlanViewModel
 @{
     Layout = "_DashboardLayout";
@@ -5,6 +6,39 @@
 }
 
 <div class="diet-page">
+    <section class="profile-card diet-ai-banner">
+        <div>
+            <p class="stat-label">@(Model.Ai.GeneratedByAi ? $"Gemini {(Model.Ai.Model ?? string.Empty)}".Trim() : Model.Ai.Source)</p>
+            <h2>@(Model.Ai.GeneratedByAi ? "Yapay Zeka Planı" : "Standart Plan")</h2>
+            <p>
+                @if (!string.IsNullOrWhiteSpace(Model.Ai.MotivationMessage) && Model.Ai.GeneratedByAi)
+                {
+                    @Model.Ai.MotivationMessage
+                }
+                else if (!string.IsNullOrWhiteSpace(Model.Ai.ErrorMessage))
+                {
+                    @Model.Ai.ErrorMessage
+                }
+                else
+                {
+                    @:Profilinizdeki verilerden faydalanılarak özet plan hazırlandı.
+                }
+            </p>
+        </div>
+        @if (Model.Ai.Cautions?.Any() == true)
+        {
+            <div>
+                <p class="stat-label">Dikkat Edilecekler</p>
+                <ul class="diet-caution-list">
+                    @foreach (var caution in Model.Ai.Cautions)
+                    {
+                        <li>@caution</li>
+                    }
+                </ul>
+            </div>
+        }
+    </section>
+
     <section class="profile-card diet-hero">
         <div>
             <p class="stat-label">Kişisel Diyet Planı</p>

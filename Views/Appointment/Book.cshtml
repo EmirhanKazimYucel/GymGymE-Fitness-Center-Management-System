@@ -17,10 +17,6 @@
             </div>
             <a asp-controller="Dashboard" asp-action="Index" class="action-btn muted-btn">Panele Dön</a>
         </header>
-        @{
-            var coachItems = Model.AvailableCoaches.Select(name => new SelectListItem { Value = name, Text = name }).ToList();
-            var hasCoaches = coachItems.Any();
-        }
         <form asp-action="Book" method="post" class="form-grid">
             <div asp-validation-summary="ModelOnly" class="validation"></div>
             <div class="full-width info-card">
@@ -40,7 +36,13 @@
                 <label asp-for="SelectedServiceId"></label>
                 @if (hasServices)
                 {
-                    <select asp-for="SelectedServiceId" asp-items="@(new SelectList(Model.Services, "Id", "Name", Model.SelectedServiceId))" id="serviceSelect"></select>
+                    <select asp-for="SelectedServiceId" id="serviceSelect">
+                        <option value="">Hizmet seçiniz</option>
+                        @foreach (var service in Model.Services)
+                        {
+                            <option value="@service.Id">@service.Name</option>
+                        }
+                    </select>
                 }
                 else
                 {
@@ -64,26 +66,21 @@
             </div>
             <div>
                 <label asp-for="SelectedTime"></label>
-                <select asp-for="SelectedTime" asp-items="@(new SelectList(Model.TimeSlots))"></select>
+                <select asp-for="SelectedTime" id="timeSelect">
+                    <option value="">Saat seçiniz</option>
+                    @foreach (var slot in Model.TimeSlots)
+                    {
+                        <option value="@slot">@slot</option>
+                    }
+                </select>
                 <span asp-validation-for="SelectedTime" class="validation"></span>
             </div>
             <div>
                 <label asp-for="SelectedCoach"></label>
-                @if (hasCoaches)
-                {
-                    <select asp-for="SelectedCoach" asp-items="coachItems" id="coachSelect"></select>
-                }
-                else
-                {
-                    <select id="coachSelect" disabled>
-                        <option value="">Seçili hizmet için koç yok</option>
-                    </select>
-                }
+                <select asp-for="SelectedCoach" id="coachSelect" data-selected-coach="@Model.SelectedCoach" disabled>
+                    <option value="">Önce hizmet seçiniz</option>
+                </select>
                 <span asp-validation-for="SelectedCoach" class="validation"></span>
-                @if (!hasCoaches)
-                {
-                    <small class="stat-label">Seçtiğiniz hizmet için uygun antrenör bulunamadı.</small>
-                }
             </div>
             <div class="full-width">
                 <label asp-for="Notes"></label>
@@ -91,7 +88,7 @@
                 <span asp-validation-for="Notes" class="validation"></span>
             </div>
             <div class="form-actions">
-                <button type="submit" class="action-btn btn-upgrade" id="submitBooking" @(hasCoaches && hasServices ? null : "disabled")>Talebi Gönder</button>
+                <button type="submit" class="action-btn btn-upgrade" id="submitBooking" disabled>Talebi Gönder</button>
             </div>
         </form>
     </section>
@@ -102,45 +99,75 @@
         const serviceCoachMap = @Html.Raw(coachData);
         const serviceSelect = document.getElementById('serviceSelect');
         const coachSelect = document.getElementById('coachSelect');
+        const timeSelect = document.getElementById('timeSelect');
         const submitBtn = document.getElementById('submitBooking');
+
+        const updateSubmitState = () => {
+            if (!submitBtn) {
+                return;
+            }
+            submitBtn.disabled = !(serviceSelect?.value && timeSelect?.value && coachSelect?.value);
+        };
+
         if (serviceSelect && coachSelect && submitBtn) {
-            let selectedCoach = coachSelect.value;
-            const refreshCoaches = keepSelection => {
+            let selectedCoach = coachSelect.dataset.selectedCoach ?? '';
+
+            const buildOption = (value, label, { disabled = false, selected = false } = {}) => {
+                const opt = document.createElement('option');
+                opt.value = value;
+                opt.textContent = label;
+                if (disabled) opt.disabled = true;
+                if (selected) opt.selected = true;
+                return opt;
+            };
+
+            const refreshCoaches = (preserveSelection) => {
                 const serviceId = serviceSelect.value;
-                const options = serviceCoachMap[serviceId] || [];
                 coachSelect.innerHTML = '';
+
+                if (!serviceId) {
+                    coachSelect.disabled = true;
+                    coachSelect.appendChild(buildOption('', 'Önce hizmet seçiniz', { selected: true }));
+                    updateSubmitState();
+                    return;
+                }
+
+                const options = serviceCoachMap[serviceId] || [];
                 if (options.length === 0) {
                     coachSelect.disabled = true;
-                    const emptyOption = document.createElement('option');
-                    emptyOption.value = '';
-                    emptyOption.textContent = 'Bu hizmet için koç yok';
-                    coachSelect.appendChild(emptyOption);
-                } else {
-                    coachSelect.disabled = false;
-                    const target = keepSelection ? selectedCoach : '';
-                    options.forEach(name => {
-                        const opt = document.createElement('option');
-                        opt.value = name;
-                        opt.textContent = name;
-                        if (target && name === target) {
-                            opt.selected = true;
-                        }
-                        coachSelect.appendChild(opt);
-                    });
-                    if (!coachSelect.value) {
-                        coachSelect.value = options[0];
-                    }
+                    coachSelect.appendChild(buildOption('', 'Bu hizmet için koç yok', { selected: true }));
+                    updateSubmitState();
+                    return;
                 }
-                submitBtn.disabled = options.length === 0;
+
+                coachSelect.disabled = false;
+                const target = preserveSelection ? (selectedCoach || '') : '';
+                coachSelect.appendChild(buildOption('', 'Koç seçiniz', { disabled: true, selected: !target }));
+                options.forEach(name => {
+                    const opt = buildOption(name, name, { selected: target === name });
+                    coachSelect.appendChild(opt);
+                });
+                if (!coachSelect.value && options.length > 0 && target) {
+                    coachSelect.value = target;
+                }
+
+                updateSubmitState();
             };
-            refreshCoaches(true);
+
             serviceSelect.addEventListener('change', () => {
                 selectedCoach = '';
                 refreshCoaches(false);
             });
+
             coachSelect.addEventListener('change', () => {
                 selectedCoach = coachSelect.value;
+                updateSubmitState();
             });
+
+            timeSelect?.addEventListener('change', updateSubmitState);
+
+            refreshCoaches(true);
+            updateSubmitState();
         }
     </script>
     <partial name="_ValidationScriptsPartial" />

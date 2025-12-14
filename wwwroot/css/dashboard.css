@@ -336,10 +336,21 @@ h6 {
     gap: 6px;
     background: white;
     transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
 }
 
 .user-calendar-day:hover {
     border-color: var(--barbie-pink-primary);
+}
+
+.user-calendar-day.clickable {
+    cursor: pointer;
+}
+
+.user-calendar-day.clickable:focus {
+    outline: 3px solid var(--barbie-pink-primary);
+    outline-offset: 2px;
 }
 
 .user-calendar-day .day-number {
@@ -354,10 +365,47 @@ h6 {
     background: #fbf5fc;
 }
 
+.user-calendar-day.free:hover,
+.user-calendar-day.free:focus,
+.user-calendar-day.free:focus-within {
+    border-style: solid;
+    border-color: var(--barbie-pink-primary);
+    box-shadow: 0 0 0 3px rgba(255, 64, 129, 0.18);
+    background: #fff;
+}
+
 .user-calendar-day.past {
     background: #f5f5f5;
     border-color: #eee;
     opacity: 0.7;
+}
+
+.calendar-cta {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    transform: translate(-50%, 15px);
+    padding: 6px 18px;
+    border-radius: 999px;
+    border: none;
+    font-weight: 700;
+    font-size: 14px;
+    font-family: 'Baloo 2', sans-serif;
+    background: linear-gradient(135deg, #ff80ab, #ff4081);
+    color: white;
+    box-shadow: 0 6px 15px rgba(255, 64, 129, 0.35);
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.user-calendar-day.clickable:hover .calendar-cta,
+.user-calendar-day.clickable:focus .calendar-cta,
+.user-calendar-day.clickable:focus-within .calendar-cta {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, 0);
 }
 
 /* Calendar Status Pills */
@@ -450,6 +498,34 @@ h6 {
     color: #9e9e9e;
 }
 
+/* --- AI Diet Banner --- */
+.diet-ai-banner {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: clamp(16px, 4vw, 48px);
+    background: linear-gradient(135deg, rgba(255,128,171,0.18), rgba(128,203,196,0.18));
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 25px 60px rgba(0,0,0,0.12);
+}
+
+.diet-ai-banner h2 {
+    margin-bottom: 8px;
+}
+
+.diet-caution-list {
+    margin: 0;
+    padding-left: 20px;
+    list-style: square;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.95rem;
+}
+
+.diet-caution-list li {
+    color: #ffeef6;
+}
 .attendance-grid span.active {
     background: var(--barbie-pink-primary);
     color: white;

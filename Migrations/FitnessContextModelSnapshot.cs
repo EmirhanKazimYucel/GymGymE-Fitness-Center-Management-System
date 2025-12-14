@@ -30,6 +30,13 @@ namespace WebProje.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Allergies")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<int>("ActivityLevel")
+                        .HasColumnType("integer");
+
                     b.Property<string>("AvatarPath")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
@@ -48,6 +55,10 @@ namespace WebProje.Migrations
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
+
+                    b.Property<string>("HealthConditions")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
 
                     b.Property<double?>("HeightCm")
                         .HasColumnType("double precision");
@@ -68,6 +79,16 @@ namespace WebProje.Migrations
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
+
+                    b.Property<int>("DietGoal")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SpecialNotes")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<double?>("TargetWeightKg")
+                        .HasColumnType("double precision");
 
                     b.Property<double?>("WeightKg")
                         .HasColumnType("double precision");

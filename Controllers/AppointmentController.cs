@@ -20,7 +20,7 @@ public class AppointmentController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Book()
+    public async Task<IActionResult> Book(DateOnly? date)
     {
         var user = await GetCurrentUserAsync();
         if (user is null)
@@ -28,7 +28,7 @@ public class AppointmentController : Controller
             return RedirectToLogin();
         }
 
-        var model = await BuildViewModelAsync(user);
+        var model = await BuildViewModelAsync(user, date);
         ViewData["Title"] = "Randevu Oluştur";
         return View(model);
     }
@@ -49,14 +49,14 @@ public class AppointmentController : Controller
         {
             ModelState.AddModelError(string.Empty, "Şu anda randevu için tanımlı hizmet bulunmuyor.");
         }
-        else if (model.Services.All(s => s.Id != model.SelectedServiceId))
+        else if (!model.SelectedServiceId.HasValue || model.Services.All(s => s.Id != model.SelectedServiceId.Value))
         {
             ModelState.AddModelError(nameof(model.SelectedServiceId), "Geçerli bir hizmet seçiniz.");
         }
 
-        if (model.Services.Any())
+        if (model.Services.Any() && model.SelectedServiceId.HasValue)
         {
-            var allowedCoaches = model.ServiceCoachMap.TryGetValue(model.SelectedServiceId, out var list)
+            var allowedCoaches = model.ServiceCoachMap.TryGetValue(model.SelectedServiceId.Value, out var list)
                 ? list
                 : Array.Empty<string>();
 
@@ -71,6 +71,10 @@ public class AppointmentController : Controller
                 ModelState.AddModelError(nameof(model.SelectedCoach), "Koç seçimi hizmet ile uyumlu değil.");
             }
         }
+        else
+        {
+            model.AvailableCoaches = Array.Empty<string>();
+        }
 
         var today = DateOnly.FromDateTime(DateTime.Today);
         if (model.SelectedDate < today)
@@ -83,7 +87,9 @@ public class AppointmentController : Controller
             return View(model);
         }
 
-        var selectedService = model.Services.FirstOrDefault(s => s.Id == model.SelectedServiceId);
+        var selectedService = model.SelectedServiceId.HasValue
+            ? model.Services.FirstOrDefault(s => s.Id == model.SelectedServiceId.Value)
+            : null;
         if (selectedService is null)
         {
             ModelState.AddModelError(nameof(model.SelectedServiceId), "Seçilen hizmet bulunamadı.");
@@ -153,11 +159,16 @@ public class AppointmentController : Controller
         return RedirectToAction("Index", "Dashboard");
     }
 
-    private async Task<AppointmentViewModel> BuildViewModelAsync(AppUser user)
+    private async Task<AppointmentViewModel> BuildViewModelAsync(AppUser user, DateOnly? preferredDate = null)
     {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var initialDate = preferredDate.HasValue && preferredDate.Value >= today
+            ? preferredDate.Value
+            : today;
+
         var model = new AppointmentViewModel
         {
-            SelectedDate = DateOnly.FromDateTime(DateTime.Today)
+            SelectedDate = initialDate
         };
 
         await PopulateBookingModelAsync(model, user);
@@ -190,20 +201,16 @@ public class AppointmentController : Controller
             kvp => kvp.Key,
             kvp => (IReadOnlyList<string>)kvp.Value);
 
-        if (model.SelectedServiceId == 0 && model.Services.Any())
-        {
-            model.SelectedServiceId = model.Services.First().Id;
-        }
-
-        var coaches = model.ServiceCoachMap.TryGetValue(model.SelectedServiceId, out var list)
+        var coaches = model.SelectedServiceId.HasValue
+            && model.ServiceCoachMap.TryGetValue(model.SelectedServiceId.Value, out var list)
             ? list
             : Array.Empty<string>();
 
         model.AvailableCoaches = coaches;
 
-        if (string.IsNullOrWhiteSpace(model.SelectedCoach) && coaches.Any())
+        if (!string.IsNullOrWhiteSpace(model.SelectedCoach) && !coaches.Contains(model.SelectedCoach))
         {
-            model.SelectedCoach = coaches.First();
+            model.SelectedCoach = string.Empty;
         }
 
         model.TimeSlots = BookingTimeSlots.All;

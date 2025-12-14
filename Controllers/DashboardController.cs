@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebProje.Data;
 using WebProje.Models;
+using WebProje.Services;
 
 namespace WebProje.Controllers;
 
@@ -17,11 +18,13 @@ public class DashboardController : Controller
 
     private readonly FitnessContext _context;
     private readonly IWebHostEnvironment _environment;
+    private readonly IGeminiDietService _dietService;
 
-    public DashboardController(FitnessContext context, IWebHostEnvironment environment)
+    public DashboardController(FitnessContext context, IWebHostEnvironment environment, IGeminiDietService dietService)
     {
         _context = context;
         _environment = environment;
+        _dietService = dietService;
     }
 
     [HttpGet]
@@ -113,6 +116,12 @@ public class DashboardController : Controller
         user.BirthDate = model.BirthDate;
         user.HeightCm = model.HeightCm;
         user.WeightKg = model.WeightKg;
+        user.TargetWeightKg = model.TargetWeightKg;
+        user.DietGoal = model.DietGoal;
+        user.ActivityLevel = model.ActivityLevel;
+        user.HealthConditions = model.HealthConditions;
+        user.Allergies = model.Allergies;
+        user.SpecialNotes = model.SpecialNotes;
 
         _context.Users.Update(user);
         await _context.SaveChangesAsync();
@@ -130,7 +139,21 @@ public class DashboardController : Controller
             return RedirectToLogin();
         }
 
-        var model = BuildDietPlanViewModel(user);
+        var model = BuildBaselineDietPlan(user);
+        var contextPayload = DietPlanRequestContext.FromUser(user, model.BodyMassIndex, model.BmiCategory);
+        var aiResult = await _dietService.GeneratePlanAsync(contextPayload, HttpContext.RequestAborted);
+
+        if (aiResult.Success && aiResult.Suggestion is not null)
+        {
+            ApplyAiSuggestion(model, aiResult.Suggestion, aiResult.ModelUsed, aiResult.ProviderName);
+        }
+        else if (!string.IsNullOrWhiteSpace(aiResult.ErrorMessage))
+        {
+            model.Ai.ErrorMessage = aiResult.ErrorMessage;
+            model.Ai.GeneratedByAi = false;
+            model.Ai.Source = "BarbieFit Standart";
+        }
+
         ViewData["Title"] = "Diyet Planım";
         return View(model);
     }
@@ -173,13 +196,19 @@ public class DashboardController : Controller
             BirthDate = user.BirthDate,
             HeightCm = user.HeightCm,
             WeightKg = user.WeightKg,
+            TargetWeightKg = user.TargetWeightKg,
+            DietGoal = user.DietGoal,
+            ActivityLevel = user.ActivityLevel,
+            HealthConditions = user.HealthConditions,
+            Allergies = user.Allergies,
+            SpecialNotes = user.SpecialNotes,
             AvatarUrl = BuildAvatarUrl(user.AvatarPath),
             BodyMassIndex = bmi,
             BmiCategory = DescribeBmi(bmi)
         };
     }
 
-    private DietPlanViewModel BuildDietPlanViewModel(AppUser user)
+    private DietPlanViewModel BuildBaselineDietPlan(AppUser user)
     {
         var bmi = CalculateBmi(user.HeightCm, user.WeightKg);
         var category = DescribeBmi(bmi);
@@ -192,7 +221,49 @@ public class DashboardController : Controller
             MacroSplit = BuildMacroSplit(category),
             HydrationLiters = SuggestHydrationLiters(user.WeightKg),
             FocusTips = BuildFocusTips(category),
-            MealIdeas = BuildMealIdeas(category)
+            MealIdeas = BuildMealIdeas(category),
+            Ai = new DietPlanAiMetadata
+            {
+                GeneratedByAi = false,
+                Source = "BarbieFit Standart"
+            }
+        };
+    }
+
+    private static void ApplyAiSuggestion(DietPlanViewModel model, AiDietPlanSuggestion suggestion, string? modelName, string? providerName)
+    {
+        if (suggestion.SuggestedCalories is int calories && calories > 0)
+        {
+            model.SuggestedCalories = calories;
+        }
+
+        if (suggestion.HydrationLiters is double liters && liters > 0)
+        {
+            model.HydrationLiters = Math.Round(liters, 1, MidpointRounding.AwayFromZero);
+        }
+
+        if (suggestion.MacroSplit is MacroDistribution macros)
+        {
+            model.MacroSplit = macros;
+        }
+
+        if (suggestion.FocusTips?.Count > 0)
+        {
+            model.FocusTips = suggestion.FocusTips;
+        }
+
+        if (suggestion.Meals?.Count > 0)
+        {
+            model.MealIdeas = suggestion.Meals;
+        }
+
+        model.Ai = new DietPlanAiMetadata
+        {
+            GeneratedByAi = true,
+            Source = string.IsNullOrWhiteSpace(providerName) ? "Gemini" : providerName,
+            Model = modelName,
+            MotivationMessage = suggestion.MotivationMessage,
+            Cautions = suggestion.Cautions ?? Array.Empty<string>()
         };
     }
 

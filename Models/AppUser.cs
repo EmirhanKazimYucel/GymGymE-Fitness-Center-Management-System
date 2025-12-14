@@ -34,4 +34,19 @@ public class AppUser
 
     [MaxLength(256)]
     public string? AvatarPath { get; set; }
+
+    public double? TargetWeightKg { get; set; }
+
+    public DietGoal DietGoal { get; set; } = DietGoal.Unspecified;
+
+    public ActivityLevel ActivityLevel { get; set; } = ActivityLevel.Moderate;
+
+    [MaxLength(512)]
+    public string? HealthConditions { get; set; }
+
+    [MaxLength(512)]
+    public string? Allergies { get; set; }
+
+    [MaxLength(512)]
+    public string? SpecialNotes { get; set; }
 }

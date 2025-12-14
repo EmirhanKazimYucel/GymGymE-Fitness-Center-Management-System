@@ -33,6 +33,28 @@ public class UserProfileViewModel
     [Display(Name = "Kilo (kg)")]
     public double? WeightKg { get; set; }
 
+    [Range(30, 250, ErrorMessage = "Hedef kilo 30-250 kg arasında olmalıdır.")]
+    [Display(Name = "Hedef Kilo (kg)")]
+    public double? TargetWeightKg { get; set; }
+
+    [Display(Name = "Motivasyon / Hedef")]
+    public DietGoal DietGoal { get; set; } = DietGoal.Unspecified;
+
+    [Display(Name = "Aktivite Seviyesi")]
+    public ActivityLevel ActivityLevel { get; set; } = ActivityLevel.Moderate;
+
+    [MaxLength(512)]
+    [Display(Name = "Sağlık Durumları / Hastalıklar")]
+    public string? HealthConditions { get; set; }
+
+    [MaxLength(512)]
+    [Display(Name = "Alerjiler veya İntoleranslar")]
+    public string? Allergies { get; set; }
+
+    [MaxLength(512)]
+    [Display(Name = "Özel Notlar / Tercihler")]
+    public string? SpecialNotes { get; set; }
+
     [Display(Name = "Profil Fotoğrafı")]
     public IFormFile? AvatarUpload { get; set; }
 

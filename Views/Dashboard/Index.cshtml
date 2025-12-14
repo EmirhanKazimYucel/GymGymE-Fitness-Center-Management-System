@@ -246,10 +246,20 @@
                 totalCells: @totalCells,
                 todayIso: '@todayIso'
             };
+            const bookingBaseUrl = '@Url.Action("Book", "Appointment")';
             const statusMap = {
                 Approved: { label: 'Onaylandı', className: 'approved' },
                 Rejected: { label: 'Reddedildi', className: 'rejected' },
                 Pending: { label: 'Beklemede', className: 'pending' }
+            };
+
+            const navigateToBooking = (isoDate) => {
+                if (!bookingBaseUrl) {
+                    return;
+                }
+                const target = new URL(bookingBaseUrl, window.location.origin);
+                target.searchParams.set('date', isoDate);
+                window.location.href = target.toString();
             };
 
             const buildCalendar = () => {
@@ -288,6 +298,7 @@
                         classList.push('past');
                     }
                     cellDiv.className = classList.join(' ');
+                    cellDiv.dataset.date = dateKey;
 
                     const dayLabel = document.createElement('span');
                     dayLabel.className = 'day-number';
@@ -295,9 +306,7 @@
                     cellDiv.appendChild(dayLabel);
 
                     if (daySlots.length === 0) {
-                        const free = document.createElement('small');
-                        free.textContent = isPast ? 'Geçmiş' : 'Müsait';
-                        cellDiv.appendChild(free);
+                        // no status chip; leave cell clean
                     } else {
                         const list = document.createElement('ul');
                         daySlots.sort((a, b) => (a.time || '').localeCompare(b.time || '', 'tr-TR', { numeric: true }));
@@ -314,6 +323,33 @@
                             list.appendChild(item);
                         });
                         cellDiv.appendChild(list);
+                    }
+
+                    if (!isPast) {
+                        const triggerBooking = () => navigateToBooking(dateKey);
+                        const handleNavigate = (event) => {
+                            if (event.type === 'click' || (event.type === 'keydown' && (event.key === 'Enter' || event.key === ' '))) {
+                                event.preventDefault();
+                                triggerBooking();
+                            }
+                        };
+                        cellDiv.classList.add('clickable');
+                        cellDiv.setAttribute('role', 'button');
+                        cellDiv.tabIndex = 0;
+                        cellDiv.setAttribute('title', 'Randevu al');
+                        cellDiv.addEventListener('click', handleNavigate);
+                        cellDiv.addEventListener('keydown', handleNavigate);
+
+                        const ctaButton = document.createElement('button');
+                        ctaButton.type = 'button';
+                        ctaButton.className = 'calendar-cta';
+                        ctaButton.textContent = 'Randevu al';
+                        ctaButton.addEventListener('click', (event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            triggerBooking();
+                        });
+                        cellDiv.appendChild(ctaButton);
                     }
 
                     grid.appendChild(cellDiv);

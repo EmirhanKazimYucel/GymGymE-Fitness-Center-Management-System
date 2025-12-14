@@ -15,7 +15,7 @@ public class AppointmentViewModel
 
     [Required(ErrorMessage = "Hizmet seçiniz.")]
     [Display(Name = "Hizmet")]
-    public int SelectedServiceId { get; set; }
+    public int? SelectedServiceId { get; set; }
 
     [Required(ErrorMessage = "Tarih seçiniz.")]
     [DataType(DataType.Date)]
