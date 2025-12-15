@@ -23,6 +23,7 @@ public interface IGeminiDietService
 
 public sealed class GeminiDietService : IGeminiDietService
 {
+    // JSON serializer defaults
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
@@ -30,12 +31,12 @@ public sealed class GeminiDietService : IGeminiDietService
         NumberHandling = JsonNumberHandling.AllowReadingFromString
     };
 
-        private const string SystemInstructionText = "Sen sertifikalı bir diyetisyensin. Türkçe yanıt ver ve klinik teşhis koyma. Sağlık risklerinde doktora yönlendir. Yanıtında sadece JSON kullan, açıklama ekleme.";
-        private static readonly SemaphoreSlim RateLimitGate = new(1, 1);
-        private static DateTimeOffset _lastRequestUtc = DateTimeOffset.MinValue;
-        private static readonly TimeSpan MinDelayBetweenRequests = TimeSpan.FromSeconds(4.1); // ~15 RPM
+    // Prompt & schema
+    private const string SystemInstructionText =
+        "Sen sertifikalı bir diyetisyensin. Türkçe yanıt ver ve klinik teşhis koyma. " +
+        "Sağlık risklerinde doktora yönlendir. Yanıtında sadece JSON kullan, açıklama ekleme.";
 
-        private const string ResponseSchema = """
+    private const string ResponseSchema = """
 {
   "planTitle": "Kısa ve motive edici başlık",
   "motivationMessage": "1-2 cümle motive edici mesaj",
@@ -58,13 +59,22 @@ public sealed class GeminiDietService : IGeminiDietService
 }
 """;
 
+    // Basit rate limit (yaklaşık 15 RPM)
+    private static readonly SemaphoreSlim RateLimitGate = new(1, 1);
+    private static readonly TimeSpan MinDelayBetweenRequests = TimeSpan.FromSeconds(4.1);
+    private static DateTimeOffset _lastRequestUtc = DateTimeOffset.MinValue;
+
     private readonly HttpClient _httpClient;
     private readonly GeminiOptions _options;
     private readonly ILogger<GeminiDietService> _logger;
 
-    private bool UseOpenAiProvider => string.Equals(_options.Provider, "OpenAI", StringComparison.OrdinalIgnoreCase);
+    private bool UseOpenAiProvider =>
+        string.Equals(_options.Provider, "OpenAI", StringComparison.OrdinalIgnoreCase);
 
-    public GeminiDietService(HttpClient httpClient, IOptions<GeminiOptions> options, ILogger<GeminiDietService> logger)
+    public GeminiDietService(
+        HttpClient httpClient,
+        IOptions<GeminiOptions> options,
+        ILogger<GeminiDietService> logger)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
@@ -75,19 +85,24 @@ public sealed class GeminiDietService : IGeminiDietService
             _httpClient.Timeout = TimeSpan.FromSeconds(_options.TimeoutSeconds);
         }
 
-        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        _httpClient.DefaultRequestHeaders.Accept.Add(
+            new MediaTypeWithQualityHeaderValue("application/json"));
     }
 
-    public async Task<GeminiDietPlanResult> GeneratePlanAsync(DietPlanRequestContext context, CancellationToken cancellationToken = default)
+    public async Task<GeminiDietPlanResult> GeneratePlanAsync(
+        DietPlanRequestContext context,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(context);
 
         if (string.IsNullOrWhiteSpace(_options.ApiKey))
         {
-            return GeminiDietPlanResult.Disabled("Yapay zeka planı henüz aktif değil, klasik plan görüntüleniyor.");
+            return GeminiDietPlanResult.Disabled(
+                "Yapay zeka planı henüz aktif değil, klasik plan görüntüleniyor.");
         }
 
         var prompt = BuildPrompt(context);
+
         return UseOpenAiProvider
             ? await SendOpenAiRequestAsync(prompt, cancellationToken)
             : await SendGeminiRequestAsync(prompt, cancellationToken);
@@ -116,12 +131,17 @@ public sealed class GeminiDietService : IGeminiDietService
         sb.AppendLine("Kullanıcı profili JSON:");
         sb.AppendLine(JsonSerializer.Serialize(userPayload, SerializerOptions));
         sb.AppendLine();
-        sb.AppendLine("Görev: Yukarıdaki kullanıcı için Türkçe bir günlük beslenme planı öner. Cevabı yalnızca aşağıdaki JSON şemasına uygun olarak üret. Değer bulunamazsa mantıklı bir varsayım yap.");
+        sb.AppendLine(
+            "Görev: Yukarıdaki kullanıcı için Türkçe bir günlük beslenme planı öner. " +
+            "Cevabı yalnızca aşağıdaki JSON şemasına uygun olarak üret. Değer bulunamazsa mantıklı bir varsayım yap.");
         sb.AppendLine(ResponseSchema);
+
         return sb.ToString();
     }
 
-    private Task<GeminiDietPlanResult> SendGeminiRequestAsync(string prompt, CancellationToken cancellationToken)
+    private Task<GeminiDietPlanResult> SendGeminiRequestAsync(
+        string prompt,
+        CancellationToken cancellationToken)
     {
         var requestBody = BuildGeminiRequestBody(prompt);
         var requestJson = JsonSerializer.Serialize(requestBody, SerializerOptions);
@@ -134,10 +154,16 @@ public sealed class GeminiDietService : IGeminiDietService
             Content = new StringContent(requestJson, Encoding.UTF8, "application/json")
         };
 
-        return SendAndProcessResponseAsync(requestMessage, ExtractGeminiPayload, cancellationToken, "Gemini");
+        return SendAndProcessResponseAsync(
+            requestMessage,
+            ExtractGeminiPayload,
+            cancellationToken,
+            "Gemini");
     }
 
-    private Task<GeminiDietPlanResult> SendOpenAiRequestAsync(string prompt, CancellationToken cancellationToken)
+    private Task<GeminiDietPlanResult> SendOpenAiRequestAsync(
+        string prompt,
+        CancellationToken cancellationToken)
     {
         var requestBody = BuildOpenAiRequestBody(prompt, _options.Model);
         var requestJson = JsonSerializer.Serialize(requestBody, SerializerOptions);
@@ -149,37 +175,54 @@ public sealed class GeminiDietService : IGeminiDietService
         };
 
         requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
+
         if (!string.IsNullOrWhiteSpace(_options.OpenAiProject))
         {
             requestMessage.Headers.TryAddWithoutValidation("OpenAI-Project", _options.OpenAiProject);
         }
+
         if (!string.IsNullOrWhiteSpace(_options.OpenAiOrganization))
         {
             requestMessage.Headers.TryAddWithoutValidation("OpenAI-Organization", _options.OpenAiOrganization);
         }
 
-        return SendAndProcessResponseAsync(requestMessage, ExtractOpenAiPayload, cancellationToken, "OpenAI");
+        return SendAndProcessResponseAsync(
+            requestMessage,
+            ExtractOpenAiPayload,
+            cancellationToken,
+            "OpenAI");
     }
 
-    private async Task<GeminiDietPlanResult> SendAndProcessResponseAsync(HttpRequestMessage requestMessage, Func<string, string?> payloadExtractor, CancellationToken cancellationToken, string providerName)
+    private async Task<GeminiDietPlanResult> SendAndProcessResponseAsync(
+        HttpRequestMessage requestMessage,
+        Func<string, string?> payloadExtractor,
+        CancellationToken cancellationToken,
+        string providerName)
     {
         try
         {
             await EnforceRateLimitAsync(cancellationToken);
+
             using var response = await _httpClient.SendAsync(requestMessage, cancellationToken);
             var responseText = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("AI isteği {StatusCode} ile sonuçlandı: {Body}", (int)response.StatusCode, Truncate(responseText, 500));
+                _logger.LogWarning(
+                    "AI isteği {StatusCode} ile sonuçlandı: {Body}",
+                    (int)response.StatusCode,
+                    Truncate(responseText, 500));
+
                 var friendlyError = BuildFriendlyError(response.StatusCode, responseText);
-                return GeminiDietPlanResult.Failure(friendlyError ?? "Yapay zeka isteği başarısız oldu. Lütfen daha sonra tekrar deneyin.");
+                return GeminiDietPlanResult.Failure(
+                    friendlyError ?? "Yapay zeka isteği başarısız oldu. Lütfen daha sonra tekrar deneyin.");
             }
 
             var payloadText = payloadExtractor(responseText);
             if (string.IsNullOrWhiteSpace(payloadText))
             {
-                return GeminiDietPlanResult.Failure("Yapay zeka cevabı alınamadı. Klasik plana döndük.");
+                return GeminiDietPlanResult.Failure(
+                    "Yapay zeka cevabı alınamadı. Klasik plana döndük.");
             }
 
             var normalized = TryExtractJsonBlock(payloadText);
@@ -192,7 +235,8 @@ public sealed class GeminiDietService : IGeminiDietService
             catch (JsonException jsonEx)
             {
                 _logger.LogWarning(jsonEx, "Yapay zeka cevabı beklenen JSON formatında değil.");
-                return GeminiDietPlanResult.Failure("Yapay zeka yanıtı çözümlenemedi, klasik plana devam ediliyor.");
+                return GeminiDietPlanResult.Failure(
+                    "Yapay zeka yanıtı çözümlenemedi, klasik plana devam ediliyor.");
             }
 
             if (payload is null)
@@ -210,7 +254,8 @@ public sealed class GeminiDietService : IGeminiDietService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Yapay zeka isteği sırasında beklenmedik bir hata oluştu.");
-            return GeminiDietPlanResult.Failure("Yapay zeka isteği tamamlanamadı, klasik plana devam ediliyor.");
+            return GeminiDietPlanResult.Failure(
+                "Yapay zeka isteği tamamlanamadı, klasik plana devam ediliyor.");
         }
         finally
         {
@@ -223,8 +268,9 @@ public sealed class GeminiDietService : IGeminiDietService
         await RateLimitGate.WaitAsync(cancellationToken);
         try
         {
-            var now = DateTimeOffset.UtcNow;
-            var elapsed = now - _lastRequestUtc;
+            var utcNow = DateTimeOffset.UtcNow;
+            var elapsed = utcNow - _lastRequestUtc;
+
             if (elapsed < MinDelayBetweenRequests)
             {
                 var delay = MinDelayBetweenRequests - elapsed;
@@ -233,6 +279,7 @@ public sealed class GeminiDietService : IGeminiDietService
                     await Task.Delay(delay, cancellationToken);
                 }
             }
+
             _lastRequestUtc = DateTimeOffset.UtcNow;
         }
         finally
@@ -244,6 +291,7 @@ public sealed class GeminiDietService : IGeminiDietService
     private static object BuildGeminiRequestBody(string prompt)
     {
         var mergedPrompt = $"{SystemInstructionText}\n\n{prompt}";
+
         return new
         {
             contents = new object[]
@@ -284,6 +332,7 @@ public sealed class GeminiDietService : IGeminiDietService
     private static string? ExtractGeminiPayload(string responseText)
     {
         var geminiResponse = JsonSerializer.Deserialize<GeminiGenerateContentResponse>(responseText, SerializerOptions);
+
         return geminiResponse?.Candidates?
             .SelectMany(c => c.Content?.Parts ?? new List<GeminiResponsePart>())
             .Select(p => p.Text)
@@ -293,6 +342,7 @@ public sealed class GeminiDietService : IGeminiDietService
     private static string? ExtractOpenAiPayload(string responseText)
     {
         var openAiResponse = JsonSerializer.Deserialize<OpenAiChatCompletionResponse>(responseText, SerializerOptions);
+
         return openAiResponse?.Choices?
             .Select(choice => choice.Message?.Content)
             .FirstOrDefault(text => !string.IsNullOrWhiteSpace(text));
@@ -300,8 +350,11 @@ public sealed class GeminiDietService : IGeminiDietService
 
     private string BuildGeminiEndpoint()
     {
-        var baseUrl = "https://generativelanguage.googleapis.com/v1beta";
-        var model = string.IsNullOrWhiteSpace(_options.Model) ? "gemini-1.5-flash" : _options.Model.Trim();
+        const string baseUrl = "https://generativelanguage.googleapis.com/v1beta";
+        var model = string.IsNullOrWhiteSpace(_options.Model)
+            ? "gemini-1.5-flash"
+            : _options.Model.Trim();
+
         var key = _options.ApiKey;
         return $"{baseUrl}/models/{model}:generateContent?key={key}";
     }
@@ -311,21 +364,25 @@ public sealed class GeminiDietService : IGeminiDietService
         var baseUrl = string.IsNullOrWhiteSpace(_options.BaseUrl)
             ? "https://api.openai.com/v1"
             : _options.BaseUrl.TrimEnd('/');
+
         return $"{baseUrl}/chat/completions";
     }
 
     private static string TryExtractJsonBlock(string payloadText)
     {
         var trimmed = payloadText.Trim();
-        if (trimmed.StartsWith("```"))
+
+        if (trimmed.StartsWith("```", StringComparison.Ordinal))
         {
             var start = trimmed.IndexOf('{');
             var end = trimmed.LastIndexOf('}');
+
             if (start >= 0 && end >= start)
             {
                 return trimmed[start..(end + 1)];
             }
         }
+
         return trimmed;
     }
 
@@ -346,17 +403,21 @@ public sealed class GeminiDietService : IGeminiDietService
         var code = parsedError?.Code ?? (int)statusCode;
         var codeText = parsedError?.CodeText ?? parsedError?.Type;
 
-        if (code == 429 || string.Equals(normalizedStatus, "RESOURCE_EXHAUSTED", StringComparison.OrdinalIgnoreCase) || string.Equals(codeText, "rate_limit_exceeded", StringComparison.OrdinalIgnoreCase))
+        if (code == 429 ||
+            string.Equals(normalizedStatus, "RESOURCE_EXHAUSTED", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(codeText, "rate_limit_exceeded", StringComparison.OrdinalIgnoreCase))
         {
             return "Yapay zeka servisinin kota limitleri dolmuş görünüyor. Sağlayıcınızın faturalandırma/kota ayarlarını kontrol edip tekrar deneyin.";
         }
 
-        if (code == 403 || string.Equals(normalizedStatus, "PERMISSION_DENIED", StringComparison.OrdinalIgnoreCase))
+        if (code == 403 ||
+            string.Equals(normalizedStatus, "PERMISSION_DENIED", StringComparison.OrdinalIgnoreCase))
         {
             return "Bu yapay zeka modeli için yetki verilmedi. Sağlayıcı panelinden erişim izni açıp tekrar deneyin.";
         }
 
-        if (code == 401 || string.Equals(normalizedStatus, "UNAUTHENTICATED", StringComparison.OrdinalIgnoreCase))
+        if (code == 401 ||
+            string.Equals(normalizedStatus, "UNAUTHENTICATED", StringComparison.OrdinalIgnoreCase))
         {
             return "API anahtarı doğrulanamadı. Anahtarı güncelleyip uygulamayı yeniden başlatmayı deneyin.";
         }
@@ -379,6 +440,7 @@ public sealed class GeminiDietService : IGeminiDietService
         try
         {
             using var document = JsonDocument.Parse(responseText);
+
             if (!document.RootElement.TryGetProperty("error", out var errorElement))
             {
                 return null;
@@ -386,15 +448,18 @@ public sealed class GeminiDietService : IGeminiDietService
 
             int? numericCode = null;
             string? codeText = null;
+
             if (errorElement.TryGetProperty("code", out var codeElement))
             {
-                if (codeElement.ValueKind == JsonValueKind.Number && codeElement.TryGetInt32(out var parsedCode))
+                if (codeElement.ValueKind == JsonValueKind.Number &&
+                    codeElement.TryGetInt32(out var parsedCode))
                 {
                     numericCode = parsedCode;
                 }
                 else if (codeElement.ValueKind == JsonValueKind.String)
                 {
                     codeText = codeElement.GetString();
+
                     if (int.TryParse(codeText, out var parsedFromText))
                     {
                         numericCode = parsedFromText;
@@ -402,13 +467,18 @@ public sealed class GeminiDietService : IGeminiDietService
                 }
             }
 
-            var status = errorElement.TryGetProperty("status", out var statusElement) && statusElement.ValueKind == JsonValueKind.String
+            var status = errorElement.TryGetProperty("status", out var statusElement) &&
+                         statusElement.ValueKind == JsonValueKind.String
                 ? statusElement.GetString()
                 : null;
-            var type = errorElement.TryGetProperty("type", out var typeElement) && typeElement.ValueKind == JsonValueKind.String
+
+            var type = errorElement.TryGetProperty("type", out var typeElement) &&
+                       typeElement.ValueKind == JsonValueKind.String
                 ? typeElement.GetString()
                 : null;
-            var message = errorElement.TryGetProperty("message", out var messageElement) && messageElement.ValueKind == JsonValueKind.String
+
+            var message = errorElement.TryGetProperty("message", out var messageElement) &&
+                          messageElement.ValueKind == JsonValueKind.String
                 ? messageElement.GetString()
                 : null;
 
@@ -430,6 +500,7 @@ public sealed class GeminiDietService : IGeminiDietService
     private static AiDietPlanSuggestion ToSuggestion(GeminiDietPlanPayload payload)
     {
         var macro = payload.MacroSplit;
+
         var macroDistribution = macro is null
             ? null
             : new MacroDistribution
@@ -439,18 +510,31 @@ public sealed class GeminiDietService : IGeminiDietService
                 FatPercent = macro.Fat ?? 0
             };
 
-        var focusTips = payload.FocusTips?.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t.Trim()).ToArray()
-                         ?? Array.Empty<string>();
+        var focusTips = payload.FocusTips?
+                            .Where(t => !string.IsNullOrWhiteSpace(t))
+                            .Select(t => t.Trim())
+                            .ToArray()
+                        ?? Array.Empty<string>();
 
-        var mealIdeas = payload.Meals?.Select(m => new DietMealIdea
-        {
-            Meal = m.Meal?.Trim() ?? string.Empty,
-            Description = m.Description?.Trim() ?? string.Empty,
-            Accent = string.IsNullOrWhiteSpace(m.Accent) ? "#ff80ab" : m.Accent.Trim()
-        }).Where(m => !string.IsNullOrWhiteSpace(m.Meal) && !string.IsNullOrWhiteSpace(m.Description)).ToArray()
-                      ?? Array.Empty<DietMealIdea>();
+        var mealIdeas = payload.Meals?
+                            .Select(m => new DietMealIdea
+                            {
+                                Meal = m.Meal?.Trim() ?? string.Empty,
+                                Description = m.Description?.Trim() ?? string.Empty,
+                                Accent = string.IsNullOrWhiteSpace(m.Accent)
+                                    ? "#ff80ab"
+                                    : m.Accent.Trim()
+                            })
+                            .Where(m =>
+                                !string.IsNullOrWhiteSpace(m.Meal) &&
+                                !string.IsNullOrWhiteSpace(m.Description))
+                            .ToArray()
+                        ?? Array.Empty<DietMealIdea>();
 
-        var cautions = payload.Cautions?.Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c.Trim()).ToArray()
+        var cautions = payload.Cautions?
+                           .Where(c => !string.IsNullOrWhiteSpace(c))
+                           .Select(c => c.Trim())
+                           .ToArray()
                        ?? Array.Empty<string>();
 
         return new AiDietPlanSuggestion
@@ -465,6 +549,8 @@ public sealed class GeminiDietService : IGeminiDietService
             PlanTitle = payload.PlanTitle
         };
     }
+
+    // ---- Internal DTOs for deserialization ----
 
     private sealed class GeminiGenerateContentResponse
     {
@@ -575,7 +661,12 @@ public sealed class GeminiDietService : IGeminiDietService
 
 public sealed class GeminiDietPlanResult
 {
-    private GeminiDietPlanResult(bool success, AiDietPlanSuggestion? suggestion, string? modelUsed, string? errorMessage, string? providerName)
+    private GeminiDietPlanResult(
+        bool success,
+        AiDietPlanSuggestion? suggestion,
+        string? modelUsed,
+        string? errorMessage,
+        string? providerName)
     {
         Success = success;
         Suggestion = suggestion;
@@ -590,11 +681,15 @@ public sealed class GeminiDietPlanResult
     public string? ErrorMessage { get; }
     public string? ProviderName { get; }
 
-    public static GeminiDietPlanResult Successful(AiDietPlanSuggestion suggestion, string? modelUsed, string? providerName) =>
+    public static GeminiDietPlanResult Successful(
+        AiDietPlanSuggestion suggestion,
+        string? modelUsed,
+        string? providerName) =>
         new(true, suggestion, modelUsed, null, providerName);
 
     public static GeminiDietPlanResult Failure(string? message) =>
         new(false, null, null, message, null);
 
-    public static GeminiDietPlanResult Disabled(string? message) => Failure(message);
+    public static GeminiDietPlanResult Disabled(string? message) =>
+        Failure(message);
 }
