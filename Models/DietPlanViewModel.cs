@@ -35,6 +35,7 @@ public class DietPlanAiMetadata
     public bool GeneratedByAi { get; set; }
     public string Source { get; set; } = "BarbieFit Standart";
     public string? Model { get; set; }
+    public string? PlanTitle { get; set; }
     public string? MotivationMessage { get; set; }
     public IReadOnlyList<string> Cautions { get; set; } = Array.Empty<string>();
     public string? ErrorMessage { get; set; }

@@ -8,10 +8,14 @@
 <div class="diet-page">
     <section class="profile-card diet-ai-banner">
         <div>
-            <p class="stat-label">@(Model.Ai.GeneratedByAi ? $"Gemini {(Model.Ai.Model ?? string.Empty)}".Trim() : Model.Ai.Source)</p>
-            <h2>@(Model.Ai.GeneratedByAi ? "Yapay Zeka Planı" : "Standart Plan")</h2>
+            <p class="stat-label">@Model.Ai.Source</p>
+            <h2>
+                @(Model.Ai.GeneratedByAi
+                    ? (!string.IsNullOrWhiteSpace(Model.Ai.PlanTitle) ? Model.Ai.PlanTitle : "Yapay Zeka Diyet Planı")
+                    : "BarbieFit Standart Öneri")
+            </h2>
             <p>
-                @if (!string.IsNullOrWhiteSpace(Model.Ai.MotivationMessage) && Model.Ai.GeneratedByAi)
+                @if (!string.IsNullOrWhiteSpace(Model.Ai.MotivationMessage))
                 {
                     @Model.Ai.MotivationMessage
                 }
@@ -21,22 +25,35 @@
                 }
                 else
                 {
-                    @:Profilinizdeki verilerden faydalanılarak özet plan hazırlandı.
+                    <text>Profil ölçümlerine göre yenilenmiş öneriler burada.</text>
                 }
             </p>
-        </div>
-        @if (Model.Ai.Cautions?.Any() == true)
-        {
-            <div>
-                <p class="stat-label">Dikkat Edilecekler</p>
-                <ul class="diet-caution-list">
+
+            <div class="ai-meta">
+                <span class="pill @(Model.Ai.GeneratedByAi ? "pill-positive" : "pill-muted")">
+                    @(Model.Ai.GeneratedByAi ? "AI Aktif" : "Standart Plan")
+                </span>
+                @if (!string.IsNullOrWhiteSpace(Model.Ai.Model))
+                {
+                    <span class="pill">@Model.Ai.Model</span>
+                }
+            </div>
+
+            @if (Model.Ai.Cautions?.Any() == true)
+            {
+                <ul class="ai-cautions">
                     @foreach (var caution in Model.Ai.Cautions)
                     {
                         <li>@caution</li>
                     }
                 </ul>
-            </div>
-        }
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.Ai.ErrorMessage))
+            {
+                <div class="ai-alert">@Model.Ai.ErrorMessage</div>
+            }
+        </div>
     </section>
 
     <section class="profile-card diet-hero">

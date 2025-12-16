@@ -18,13 +18,13 @@ public class DashboardController : Controller
 
     private readonly FitnessContext _context;
     private readonly IWebHostEnvironment _environment;
-    private readonly IGeminiDietService _dietService;
+    private readonly IOpenAiDietService _openAiDietService;
 
-    public DashboardController(FitnessContext context, IWebHostEnvironment environment, IGeminiDietService dietService)
+    public DashboardController(FitnessContext context, IWebHostEnvironment environment, IOpenAiDietService openAiDietService)
     {
         _context = context;
         _environment = environment;
-        _dietService = dietService;
+        _openAiDietService = openAiDietService;
     }
 
     [HttpGet]
@@ -140,18 +140,27 @@ public class DashboardController : Controller
         }
 
         var model = BuildBaselineDietPlan(user);
-        var contextPayload = DietPlanRequestContext.FromUser(user, model.BodyMassIndex, model.BmiCategory);
-        var aiResult = await _dietService.GeneratePlanAsync(contextPayload, HttpContext.RequestAborted);
 
-        if (aiResult.Success && aiResult.Suggestion is not null)
+        try
         {
-            ApplyAiSuggestion(model, aiResult.Suggestion, aiResult.ModelUsed, aiResult.ProviderName);
+            var requestContext = DietPlanRequestContext.FromUser(user, model.BodyMassIndex, model.BmiCategory);
+            var aiResult = await _openAiDietService.GeneratePlanAsync(requestContext, HttpContext.RequestAborted);
+            if (aiResult is not null)
+            {
+                ApplyAiSuggestion(model, aiResult.Suggestion, aiResult.Model, aiResult.Provider);
+            }
+            else
+            {
+                model.Ai.ErrorMessage = "Yapay zeka yanıt veremediği için standart öneriler gösteriliyor.";
+            }
         }
-        else if (!string.IsNullOrWhiteSpace(aiResult.ErrorMessage))
+        catch (OperationCanceledException)
         {
-            model.Ai.ErrorMessage = aiResult.ErrorMessage;
-            model.Ai.GeneratedByAi = false;
-            model.Ai.Source = "BarbieFit Standart";
+            model.Ai.ErrorMessage = "Yapay zeka isteği iptal edildi, standart plan gösteriliyor.";
+        }
+        catch (Exception)
+        {
+            model.Ai.ErrorMessage = "Yapay zeka önerisi alınamadı, standart plan gösteriliyor.";
         }
 
         ViewData["Title"] = "Diyet Planım";
@@ -260,10 +269,12 @@ public class DashboardController : Controller
         model.Ai = new DietPlanAiMetadata
         {
             GeneratedByAi = true,
-            Source = string.IsNullOrWhiteSpace(providerName) ? "Gemini" : providerName,
+            Source = string.IsNullOrWhiteSpace(providerName) ? "OpenAI" : providerName,
             Model = modelName,
             MotivationMessage = suggestion.MotivationMessage,
-            Cautions = suggestion.Cautions ?? Array.Empty<string>()
+            Cautions = suggestion.Cautions ?? Array.Empty<string>(),
+            PlanTitle = suggestion.PlanTitle,
+            ErrorMessage = null
         };
     }
 
