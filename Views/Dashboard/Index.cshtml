@@ -107,6 +107,81 @@
         </div>
     </section>
 
+    <section class="leaderboard-card full-width">
+        <div class="leaderboard-header">
+            <div>
+                <p class="stat-label">Class leaderboard</p>
+                <h2>Haftanın randevu şampiyonları</h2>
+                <p>Bu liste, bu hafta içinde onaylanmış ve tamamlanmış seans sayılarına göre güncellenir.</p>
+            </div>
+            <div class="leaderboard-tabs" role="tablist" aria-label="Liderlik kriterleri">
+                <button type="button" class="leader-tab active" aria-selected="true">Randevular</button>
+                <button type="button" class="leader-tab" disabled>Savings</button>
+                <button type="button" class="leader-tab" disabled>Net worth</button>
+                <button type="button" class="leader-tab" disabled>Credit score</button>
+            </div>
+        </div>
+
+        @if (Model.WeeklyLeaderboard.Any())
+        {
+            var podium = Model.WeeklyLeaderboard.Take(3).ToList();
+            var podiumOrdered = podium.Count >= 3
+                ? new[] { podium[1], podium[0], podium[2] }
+                : podium.ToArray();
+            var others = Model.WeeklyLeaderboard.Skip(3).ToList();
+
+            <div class="leaderboard-podium" aria-live="polite">
+                @foreach (var entry in podiumOrdered)
+                {
+                    <article class="podium-item podium-rank-@entry.Rank">
+                        <div class="podium-avatar" aria-hidden="true">
+                            @if (!string.IsNullOrWhiteSpace(entry.AvatarUrl))
+                            {
+                                <img src="@entry.AvatarUrl" alt="@entry.DisplayName profil fotoğrafı" />
+                            }
+                            else
+                            {
+                                <span>@entry.Initials</span>
+                            }
+                        </div>
+                        <div class="podium-meta">
+                            <span class="podium-rank">#@entry.Rank</span>
+                            <h3>@entry.DisplayName</h3>
+                            <p>@entry.CompletedCount randevu</p>
+                        </div>
+                    </article>
+                }
+            </div>
+
+            @if (others.Any())
+            {
+                <ul class="leaderboard-list">
+                    @foreach (var entry in others)
+                    {
+                        <li>
+                            <span class="rank-chip">#@entry.Rank</span>
+                            <div class="leader-info">
+                                <strong>@entry.DisplayName</strong>
+                                <small>@entry.Email</small>
+                            </div>
+                            <span class="leader-score">@entry.CompletedCount</span>
+                        </li>
+                    }
+                </ul>
+            }
+        }
+        else
+        {
+            <div class="leaderboard-empty">
+                Bu hafta henüz tamamlanmış randevu yok. İlk sen ol!
+            </div>
+        }
+
+        <div class="leaderboard-footer">
+            <a class="show-class-btn" asp-controller="Appointment" asp-action="Book">Show entire class</a>
+        </div>
+    </section>
+
     <div class="full-width">
         <div class="stats-row">
             <div class="stat-card">
@@ -128,15 +203,38 @@
         </div>
     </div>
 
-    <section class="workout-card">
-        <header>
-            <h2>Antrenman Aktivitesi</h2>
-            @if (TempData["LoginMessage"] is string loginMessage)
-            {
-                <small>@loginMessage</small>
-            }
-        </header>
-        <div class="workout-graph"></div>
+    <section class="activity-card full-width">
+        <div class="activity-header">
+            <div>
+                <p class="stat-label">Antrenman Aktivitesi</p>
+                <h2>Grafik Görünümü</h2>
+                <p>Son antrenman randevularınızın onay durumuna göre otomatik güncellenir.</p>
+            </div>
+            <div class="activity-controls">
+                <label>
+                    <span>Zaman Aralığı</span>
+                    <select id="activityRange" aria-label="Zaman aralığı seçimi">
+                        <option value="week" selected>7 Gün</option>
+                        <option value="month">4 Hafta</option>
+                        <option value="year">12 Ay</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Aktivite Türü</span>
+                    <select id="activityType" aria-label="Aktivite türü seçimi">
+                        <option value="">Tümü</option>
+                        @foreach (var type in Model.ActivityTypes)
+                        {
+                            <option value="@type">@type</option>
+                        }
+                    </select>
+                </label>
+            </div>
+        </div>
+        <div class="activity-chart-shell">
+            <canvas id="activityChart" aria-label="Antrenman aktivite grafiği" role="img"></canvas>
+            <div class="activity-empty" data-activity-empty>Henüz onaylanmış aktivite yok.</div>
+        </div>
     </section>
 
     <section class="progress-card">
@@ -229,6 +327,7 @@
 </div>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
     <script type="application/json" id="userScheduleData">@Html.Raw(schedulePayload)</script>
     <script>
         (() => {
@@ -357,6 +456,119 @@
             };
 
             buildCalendar();
+        })();
+
+        (() => {
+            const chartElement = document.getElementById('activityChart');
+            if (!chartElement) {
+                return;
+            }
+
+            const rangeSelect = document.getElementById('activityRange');
+            const typeSelect = document.getElementById('activityType');
+            const emptyState = document.querySelector('[data-activity-empty]');
+            const endpoint = '@Url.Action("ActivityData", "Dashboard")';
+            const paletteFallback = ['#ff4081', '#00bcd4', '#9c27b0', '#ffc107', '#4caf50'];
+            let chartInstance;
+
+            const buildQuery = () => {
+                const params = new URLSearchParams();
+                params.set('range', rangeSelect?.value ?? 'week');
+                if (typeSelect?.value) {
+                    params.set('type', typeSelect.value);
+                }
+                return params.toString();
+            };
+
+            const renderChart = (payload) => {
+                const datasets = (payload.datasets ?? []).map((dataset, index) => {
+                    const color = dataset.color ?? paletteFallback[index % paletteFallback.length];
+                    return {
+                        label: dataset.label,
+                        data: dataset.data,
+                        borderColor: color,
+                        backgroundColor: color,
+                        fill: false,
+                        tension: 0.35,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    };
+                });
+
+                const hasData = datasets.some(ds => (ds.data ?? []).some(value => value > 0));
+                if (emptyState) {
+                    emptyState.style.display = hasData ? 'none' : 'flex';
+                }
+
+                if (chartInstance) {
+                    chartInstance.destroy();
+                }
+
+                chartInstance = new Chart(chartElement, {
+                    type: 'line',
+                    data: {
+                        labels: payload.labels,
+                        datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: datasets.length > 1
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false
+                            }
+                        },
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0
+                                },
+                                grid: {
+                                    color: 'rgba(0,0,0,0.05)'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            };
+
+            const loadData = async () => {
+                try {
+                    const response = await fetch(`${endpoint}?${buildQuery()}`, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                    if (!response.ok) {
+                        return;
+                    }
+                    const payload = await response.json();
+                    renderChart(payload);
+                } catch (error) {
+                    if (emptyState) {
+                        emptyState.style.display = 'flex';
+                        emptyState.textContent = 'Veri yüklenemedi.';
+                    }
+                }
+            };
+
+            rangeSelect?.addEventListener('change', loadData);
+            typeSelect?.addEventListener('change', loadData);
+            loadData();
         })();
     </script>
 }

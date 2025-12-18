@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -15,6 +16,14 @@ public class DashboardController : Controller
 {
     private const string AvatarFolder = "uploads/avatars";
     private const long MaxAvatarBytes = 2 * 1024 * 1024; // 2 MB limit keeps uploads lightweight
+    private static readonly string[] ActivityPalette =
+    {
+        "#ff4081",
+        "#00bcd4",
+        "#9c27b0",
+        "#ffc107",
+        "#4caf50"
+    };
 
     private readonly FitnessContext _context;
     private readonly IWebHostEnvironment _environment;
@@ -35,6 +44,8 @@ public class DashboardController : Controller
         {
             return RedirectToLogin();
         }
+
+        ApplySidebarContext(user);
 
         var appointments = await _context.AppointmentRequests
             .AsNoTracking()
@@ -59,13 +70,22 @@ public class DashboardController : Controller
             .ThenBy(slot => slot.TimeSlot, StringComparer.Ordinal)
             .Take(6)
             .ToList();
+        var weeklyLeaderboard = await LoadWeeklyLeaderboardAsync(today);
+        var activityTypes = slots
+            .Select(slot => slot.Service)
+            .Where(service => !string.IsNullOrWhiteSpace(service))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(service => service)
+            .ToList();
 
         var model = new DashboardViewModel
         {
             UserFullName = BuildUserDisplayName(user),
             UserEmail = user.Email,
             Appointments = slots,
-            UpcomingAppointments = upcoming
+            UpcomingAppointments = upcoming,
+            WeeklyLeaderboard = weeklyLeaderboard,
+            ActivityTypes = activityTypes
         };
 
         ViewData["Title"] = "Kullanıcı Paneli";
@@ -80,6 +100,8 @@ public class DashboardController : Controller
         {
             return RedirectToLogin();
         }
+
+        ApplySidebarContext(user);
 
         var model = BuildProfileViewModel(user);
         ViewData["Title"] = "Profilim";
@@ -96,6 +118,7 @@ public class DashboardController : Controller
             return RedirectToLogin();
         }
 
+        ApplySidebarContext(user);
         ViewData["Title"] = "Profilim";
 
         if (!ModelState.IsValid)
@@ -139,6 +162,7 @@ public class DashboardController : Controller
             return RedirectToLogin();
         }
 
+        ApplySidebarContext(user);
         var model = BuildBaselineDietPlan(user);
 
         try
@@ -166,6 +190,76 @@ public class DashboardController : Controller
         ViewData["Title"] = "Diyet Planım";
         return View(model);
     }
+    
+    [HttpGet]
+    public async Task<IActionResult> ActivityData([FromQuery] string range = "week", [FromQuery] string? type = null)
+    {
+        var user = await GetCurrentUserAsync();
+        if (user is null)
+        {
+            return Unauthorized();
+        }
+
+        var normalizedRange = NormalizeRange(range);
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var culture = CultureInfo.GetCultureInfo("tr-TR");
+        var rangeDefinition = BuildActivityRangeDefinition(normalizedRange, today, culture);
+
+        var records = await _context.AppointmentRequests.AsNoTracking()
+            .Where(a => a.Email == user.Email
+                && a.Status == AppointmentStatus.Approved
+                && a.Date >= rangeDefinition.Start
+                && a.Date <= today)
+            .Select(a => new { a.Date, a.ServiceName })
+            .ToListAsync();
+
+        var requestedType = string.IsNullOrWhiteSpace(type) ? null : type.Trim();
+        var types = requestedType is null
+            ? records.Select(r => r.ServiceName)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(name => name)
+                .ToList()
+            : new List<string> { requestedType };
+
+        if (types.Count == 0)
+        {
+            types.Add(requestedType ?? "Aktivite");
+        }
+
+        var labels = rangeDefinition.BuildLabels();
+        var datasets = new List<object>();
+
+        for (var i = 0; i < types.Count; i++)
+        {
+            var activityType = types[i];
+            var label = string.IsNullOrWhiteSpace(activityType) ? "Aktivite" : activityType;
+            var data = new int[rangeDefinition.BucketCount];
+
+            foreach (var record in records.Where(r => string.Equals(r.ServiceName, activityType, StringComparison.OrdinalIgnoreCase)))
+            {
+                var bucketIndex = rangeDefinition.ResolveBucket(record.Date);
+                if (bucketIndex >= 0 && bucketIndex < data.Length)
+                {
+                    data[bucketIndex]++;
+                }
+            }
+
+            datasets.Add(new
+            {
+                label,
+                data,
+                color = ActivityPalette[i % ActivityPalette.Length]
+            });
+        }
+
+        return Json(new
+        {
+            range = normalizedRange,
+            labels,
+            datasets
+        });
+    }
 
     private async Task<AppUser?> GetCurrentUserAsync()
     {
@@ -183,6 +277,13 @@ public class DashboardController : Controller
     {
         var returnUrl = Url.Action(nameof(Index), "Dashboard");
         return RedirectToAction("Login", "Account", new { returnUrl });
+    }
+
+    private void ApplySidebarContext(AppUser user)
+    {
+        var avatarUrl = BuildAvatarUrl(user.AvatarPath) ?? Url.Content("~/images/barbie.png");
+        ViewData["SidebarAvatarUrl"] = avatarUrl;
+        ViewData["SidebarUserName"] = BuildUserDisplayName(user);
     }
 
     private static string BuildUserDisplayName(AppUser user)
@@ -401,6 +502,91 @@ public class DashboardController : Controller
         };
     }
 
+    private async Task<IReadOnlyList<WeeklyLeaderboardEntry>> LoadWeeklyLeaderboardAsync(DateOnly referenceDate)
+    {
+        var weekStart = GetWeekStart(referenceDate);
+        var weekEndExclusive = weekStart.AddDays(7);
+
+        var leaderboardRaw = await (from appointment in _context.AppointmentRequests.AsNoTracking()
+                                    join user in _context.Users.AsNoTracking()
+                                        on appointment.Email equals user.Email
+                                    where appointment.Status == AppointmentStatus.Approved
+                                          && appointment.Date >= weekStart
+                                          && appointment.Date < weekEndExclusive
+                                          && appointment.Date <= referenceDate
+                                    group appointment by new
+                                    {
+                                        user.Id,
+                                        user.Email,
+                                        user.FirstName,
+                                        user.LastName,
+                                        user.AvatarPath
+                                    }
+            into grouped
+                                    orderby grouped.Count() descending, grouped.Key.FirstName, grouped.Key.LastName
+                                    select new
+                                    {
+                                        grouped.Key.Email,
+                                        grouped.Key.FirstName,
+                                        grouped.Key.LastName,
+                                        grouped.Key.AvatarPath,
+                                        Count = grouped.Count()
+                                    })
+            .Take(5)
+            .ToListAsync();
+
+        if (leaderboardRaw.Count == 0)
+        {
+            return Array.Empty<WeeklyLeaderboardEntry>();
+        }
+
+        var entries = new List<WeeklyLeaderboardEntry>(leaderboardRaw.Count);
+        for (var i = 0; i < leaderboardRaw.Count; i++)
+        {
+            var raw = leaderboardRaw[i];
+            var displayName = BuildUserDisplayName(new AppUser
+            {
+                FirstName = raw.FirstName,
+                LastName = raw.LastName,
+                Email = raw.Email
+            });
+
+            entries.Add(new WeeklyLeaderboardEntry
+            {
+                Rank = i + 1,
+                DisplayName = displayName,
+                Email = raw.Email,
+                AvatarUrl = BuildAvatarUrl(raw.AvatarPath),
+                Initials = BuildInitials(displayName),
+                CompletedCount = raw.Count
+            });
+        }
+
+        return entries;
+    }
+
+    private static DateOnly GetWeekStart(DateOnly date)
+    {
+        var diff = ((int)date.DayOfWeek + 6) % 7;
+        return date.AddDays(-diff);
+    }
+
+    private static string BuildInitials(string fullName)
+    {
+        if (string.IsNullOrWhiteSpace(fullName))
+        {
+            return "?";
+        }
+
+        var parts = fullName
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Take(2)
+            .Select(p => char.ToUpperInvariant(p[0]));
+
+        var initials = string.Concat(parts);
+        return string.IsNullOrWhiteSpace(initials) ? "?" : initials;
+    }
+
     private static double? CalculateBmi(double? heightCm, double? weightKg)
     {
         if (heightCm is null or <= 0 || weightKg is null or <= 0)
@@ -496,5 +682,84 @@ public class DashboardController : Controller
         {
             System.IO.File.Delete(fullPath);
         }
+    }
+
+    private static string NormalizeRange(string? range)
+    {
+        return range?.ToLowerInvariant() switch
+        {
+            "month" => "month",
+            "year" => "year",
+            _ => "week"
+        };
+    }
+
+    private static ActivityRangeDefinition BuildActivityRangeDefinition(string rangeKey, DateOnly today, CultureInfo culture)
+    {
+        return rangeKey switch
+        {
+            "month" => BuildMonthlyRange(),
+            "year" => BuildYearlyRange(),
+            _ => BuildWeeklyRange()
+        };
+
+        ActivityRangeDefinition BuildWeeklyRange()
+        {
+            var start = today.AddDays(-6);
+            return new ActivityRangeDefinition(
+                "week",
+                start,
+                7,
+                index => start.AddDays(index),
+                date => date.ToString("ddd", culture),
+                date => date.DayNumber - start.DayNumber);
+        }
+
+        ActivityRangeDefinition BuildMonthlyRange()
+        {
+            var start = today.AddDays(-27);
+            return new ActivityRangeDefinition(
+                "month",
+                start,
+                4,
+                index => start.AddDays(index * 7),
+                date => date.ToString("dd MMM", culture),
+                date => (date.DayNumber - start.DayNumber) / 7);
+        }
+
+        ActivityRangeDefinition BuildYearlyRange()
+        {
+            var start = new DateOnly(today.Year, today.Month, 1).AddMonths(-11);
+            return new ActivityRangeDefinition(
+                "year",
+                start,
+                12,
+                index => start.AddMonths(index),
+                date => date.ToString("MMM yy", culture),
+                date => ((date.Year - start.Year) * 12) + (date.Month - start.Month));
+        }
+    }
+
+    private sealed record ActivityRangeDefinition(
+        string Key,
+        DateOnly Start,
+        int BucketCount,
+        Func<int, DateOnly> BucketStartSelector,
+        Func<DateOnly, string> LabelFormatter,
+        Func<DateOnly, int> BucketResolver)
+    {
+        public string[] BuildLabels()
+        {
+            var labels = new string[BucketCount];
+            for (var i = 0; i < BucketCount; i++)
+            {
+                var bucketStart = BucketStartSelector(i);
+                labels[i] = LabelFormatter(bucketStart);
+            }
+
+            return labels;
+        }
+
+        public int ResolveBucket(DateOnly date) => BucketResolver(date);
     }
 }

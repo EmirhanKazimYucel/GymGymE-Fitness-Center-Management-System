@@ -28,6 +28,7 @@ public class AppointmentController : Controller
             return RedirectToLogin();
         }
 
+        ApplySidebarContext(user);
         var model = await BuildViewModelAsync(user, date);
         ViewData["Title"] = "Randevu Oluştur";
         return View(model);
@@ -43,6 +44,7 @@ public class AppointmentController : Controller
             return RedirectToLogin();
         }
 
+        ApplySidebarContext(user);
         await PopulateBookingModelAsync(model, user);
 
         if (!model.Services.Any())
@@ -192,6 +194,13 @@ public class AppointmentController : Controller
         return RedirectToAction("Login", "Account", new { returnUrl });
     }
 
+    private void ApplySidebarContext(AppUser user)
+    {
+        var avatarUrl = BuildAvatarUrl(user.AvatarPath) ?? Url.Content("~/images/barbie.png");
+        ViewData["SidebarAvatarUrl"] = avatarUrl;
+        ViewData["SidebarUserName"] = BuildUserDisplayName(user);
+    }
+
     private async Task PopulateBookingModelAsync(AppointmentViewModel model, AppUser user)
     {
         var serviceData = await LoadServiceDataAsync();
@@ -263,6 +272,16 @@ public class AppointmentController : Controller
             .Where(part => !string.IsNullOrWhiteSpace(part));
         var joined = string.Join(" ", nameParts);
         return string.IsNullOrWhiteSpace(joined) ? user.Email : joined;
+    }
+
+    private static string? BuildAvatarUrl(string? avatarPath)
+    {
+        if (string.IsNullOrWhiteSpace(avatarPath))
+        {
+            return null;
+        }
+
+        return avatarPath.StartsWith('/') ? avatarPath : $"/{avatarPath}";
     }
 
     private static int NormalizeDuration(int? minutes)

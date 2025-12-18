@@ -9,35 +9,45 @@
 @{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var sidebarAvatarUrl = ViewData["SidebarAvatarUrl"] as string ?? Url.Content("~/images/barbie.png");
+    var sidebarUserName = ViewData["SidebarUserName"] as string ?? "Profilim";
 }
 
 <body class="dashboard-body">
     <div class="dashboard-shell">
         <aside class="dashboard-sidebar">
-            <div class="brand-circle">B</div>
+            <a class="sidebar-avatar" asp-controller="Dashboard" asp-action="Profile" title="Profilim">
+                <img src="@sidebarAvatarUrl" alt="@sidebarUserName" />
+                <div class="sidebar-avatar-info">
+                    <strong>@sidebarUserName</strong>
+                    <span>Profilim</span>
+                </div>
+            </a>
             <nav class="sidebar-nav">
                 <a class="sidebar-btn @(currentController == "Dashboard" && currentAction == "Index" ? "active" : string.Empty)" asp-controller="Dashboard" asp-action="Index" title="Panel">
-                    <span class="dot"></span>
+                    <span class="icon" aria-hidden="true">🏠</span>
+                    <span class="label">Panel</span>
                 </a>
                 <a class="sidebar-btn @(currentController == "Dashboard" && currentAction == "Profile" ? "active" : string.Empty)" asp-controller="Dashboard" asp-action="Profile" title="Profil">
-                    <span class="icon">💖</span>
+                    <span class="icon" aria-hidden="true">💖</span>
+                    <span class="label">Profil</span>
                 </a>
                 <a class="sidebar-btn @(currentController == "Dashboard" && currentAction == "DietPlan" ? "active" : string.Empty)" asp-controller="Dashboard" asp-action="DietPlan" title="Diyet Planı">
-                    <span class="icon">🥗</span>
+                    <span class="icon" aria-hidden="true">🥗</span>
+                    <span class="label">Diyet Planı</span>
                 </a>
                 <a class="sidebar-btn @(currentController == "Appointment" ? "active" : string.Empty)" asp-controller="Appointment" asp-action="Book" title="Randevu">
-                    <span class="icon">📅</span>
-                </a>
-                <a class="sidebar-btn" href="#" title="Programlar">
-                    <span class="icon">⚡</span>
-                </a>
-                <a class="sidebar-btn" href="#" title="Egzersizler">
-                    <span class="icon">🧘</span>
-                </a>
-                <a class="sidebar-btn" href="#" title="Ayarlar">
-                    <span class="icon">⚙️</span>
+                    <span class="icon" aria-hidden="true">📅</span>
+                    <span class="label">Randevu</span>
                 </a>
             </nav>
+            <form class="sidebar-logout" asp-controller="Account" asp-action="Logout" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="sidebar-btn logout-btn" title="Çıkış Yap">
+                    <span class="icon" aria-hidden="true">⏻</span>
+                    <span class="label">Çıkış</span>
+                </button>
+            </form>
         </aside>
         <main class="dashboard-main">
             @RenderBody()

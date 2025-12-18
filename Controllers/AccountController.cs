@@ -113,6 +113,15 @@ public class AccountController : Controller
         return RedirectToAction(nameof(Login));
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Logout()
+    {
+        HttpContext.Session.Clear();
+        TempData["LoginMessage"] = "Oturum başarıyla kapatıldı.";
+        return RedirectToAction(nameof(Login));
+    }
+
     private IActionResult BuildAuthView(LoginViewModel? login, RegisterViewModel? register, string activeTab)
     {
         var viewModel = new AuthPageViewModel

@@ -31,6 +31,24 @@
             gap:24px;
         }
         .sidebar-nav {
+            .admin-logout {
+                margin-top: 32px;
+            }
+            .logout-btn {
+                width: 100%;
+                padding: 12px 20px;
+                border-radius: 16px;
+                border: none;
+                font-weight: 700;
+                background: rgba(255, 255, 255, 0.2);
+                color: white;
+                cursor: pointer;
+                transition: background 0.2s, transform 0.2s;
+            }
+            .logout-btn:hover {
+                background: rgba(255, 255, 255, 0.35);
+                transform: translateY(-1px);
+            }
             display:flex;
             flex-direction:column;
             gap:10px;
@@ -492,6 +510,10 @@
             <button type="button" data-target="coach-api">API · Antrenörler</button>
             <button type="button" data-target="schedule">Planlayıcı</button>
         </nav>
+        <form class="admin-logout" asp-controller="Account" asp-action="Logout" method="post">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="logout-btn">Çıkış Yap</button>
+        </form>
     </aside>
     <main class="admin-main">
         @if (TempData["LoginMessage"] is string loginMessage)
