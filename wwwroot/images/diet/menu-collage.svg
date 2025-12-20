@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="320" viewBox="0 0 512 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="512" height="320" rx="28" fill="#fff8fb"/>
+    <g transform="translate(36 40)">
+        <rect x="0" y="0" width="200" height="120" rx="24" fill="#fef0f7" stroke="#ff80ab" stroke-width="3"/>
+        <circle cx="70" cy="60" r="36" fill="#fff" stroke="#ffa4c6" stroke-width="6"/>
+        <circle cx="140" cy="60" r="28" fill="#fff" stroke="#ffd2e5" stroke-width="6"/>
+        <circle cx="70" cy="60" r="20" fill="#ffe27a"/>
+        <circle cx="140" cy="60" r="16" fill="#90e0ef"/>
+        <path d="M40 95 Q70 75 100 95" stroke="#ff80ab" stroke-width="4" fill="none" stroke-linecap="round"/>
+    </g>
+    <g transform="translate(276 32)">
+        <rect x="0" y="0" width="200" height="130" rx="24" fill="#eef8ff" stroke="#7ad0ff" stroke-width="3"/>
+        <circle cx="65" cy="54" r="34" fill="#fff" stroke="#7ad0ff" stroke-width="6"/>
+        <circle cx="140" cy="75" r="40" fill="#fff" stroke="#b0f4ff" stroke-width="6"/>
+        <circle cx="65" cy="54" r="18" fill="#ffb347"/>
+        <circle cx="140" cy="75" r="22" fill="#c3f584"/>
+        <path d="M32 110 C80 90 120 90 168 110" stroke="#58c4dd" stroke-width="4" fill="none" stroke-linecap="round"/>
+    </g>
+    <g transform="translate(108 180)">
+        <rect x="0" y="0" width="296" height="108" rx="24" fill="#f1fff4" stroke="#9be7a4" stroke-width="3"/>
+        <circle cx="74" cy="54" r="36" fill="#fff" stroke="#b2f2bb" stroke-width="6"/>
+        <circle cx="148" cy="54" r="32" fill="#fff" stroke="#ffd8a8" stroke-width="6"/>
+        <circle cx="222" cy="54" r="36" fill="#fff" stroke="#ffccd5" stroke-width="6"/>
+        <circle cx="74" cy="54" r="18" fill="#a3e635"/>
+        <circle cx="148" cy="54" r="17" fill="#ffe066"/>
+        <circle cx="222" cy="54" r="17" fill="#ffa8a8"/>
+        <path d="M40 94 L256 94" stroke="#9be7a4" stroke-width="4" stroke-linecap="round" stroke-dasharray="12 12"/>
+    </g>
+    <text x="256" y="310" text-anchor="middle" font-family="'Baloo 2', 'Segoe UI', sans-serif" font-size="20" fill="#c2185b">BarbieFit Günlük Menü</text>
+</svg>

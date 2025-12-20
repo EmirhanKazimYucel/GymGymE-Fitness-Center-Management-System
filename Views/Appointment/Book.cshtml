@@ -4,6 +4,7 @@
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Randevu Oluştur";
     var hasServices = Model.Services.Any();
+    var hasTimeSlots = Model.TimeSlots.Any();
     var coachData = JsonSerializer.Serialize(Model.ServiceCoachMap);
     var today = DateOnly.FromDateTime(DateTime.Today);
 }
@@ -66,14 +67,35 @@
             </div>
             <div>
                 <label asp-for="SelectedTime"></label>
-                <select asp-for="SelectedTime" id="timeSelect">
-                    <option value="">Saat seçiniz</option>
-                    @foreach (var slot in Model.TimeSlots)
-                    {
-                        <option value="@slot">@slot</option>
-                    }
-                </select>
+                @if (hasTimeSlots)
+                {
+                    <select asp-for="SelectedTime" id="timeSelect">
+                        <option value="">Saat seçiniz</option>
+                        @foreach (var slot in Model.TimeSlots)
+                        {
+                            <option value="@slot">@slot</option>
+                        }
+                    </select>
+                }
+                else
+                {
+                    <select asp-for="SelectedTime" id="timeSelect" disabled="disabled">
+                        <option value="">Bu tarih için uygun saat yok</option>
+                    </select>
+                }
                 <span asp-validation-for="SelectedTime" class="validation"></span>
+                @if (!hasTimeSlots)
+                {
+                    <small class="stat-label">
+                        @(
+                            Model.GymClosedForSelectedDate
+                                ? "Seçtiğiniz gün salon kapalı."
+                                : (Model.NoRemainingSlotsForToday && Model.SelectedDate == today)
+                                    ? "Bugün için kalan saat bulunmuyor."
+                                    : "Bu tarih için çalışma saatleri tanımlanmadı."
+                        )
+                    </small>
+                }
             </div>
             <div>
                 <label asp-for="SelectedCoach"></label>
@@ -96,6 +118,18 @@
 
 @section Scripts {
     <script>
+        const bookingUrl = '@Url.Action("Book", "Appointment")';
+        const dateInput = document.querySelector('input[name="SelectedDate"]');
+        dateInput?.addEventListener('change', () => {
+            if (!bookingUrl || !dateInput.value) {
+                return;
+            }
+
+            const hasQuery = bookingUrl.includes('?');
+            const target = `${bookingUrl}${hasQuery ? '&' : '?'}date=${dateInput.value}`;
+            window.location.href = target;
+        });
+
         const serviceCoachMap = @Html.Raw(coachData);
         const serviceSelect = document.getElementById('serviceSelect');
         const coachSelect = document.getElementById('coachSelect');
@@ -106,7 +140,8 @@
             if (!submitBtn) {
                 return;
             }
-            submitBtn.disabled = !(serviceSelect?.value && timeSelect?.value && coachSelect?.value);
+            const timeReady = timeSelect && !timeSelect.disabled && timeSelect.value;
+            submitBtn.disabled = !(serviceSelect?.value && timeReady && coachSelect?.value);
         };
 
         if (serviceSelect && coachSelect && submitBtn) {

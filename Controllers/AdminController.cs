@@ -1,13 +1,18 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebProje.Data;
+using WebProje.Filters;
 using WebProje.Models;
 
 namespace WebProje.Controllers;
 
+[RoleAuthorize(RoleNames.Admin)]
 public class AdminController : Controller
 {
     private readonly FitnessContext _context;
@@ -63,7 +68,7 @@ public class AdminController : Controller
 
         appointment.Status = status;
         appointment.DecisionAtUtc = DateTime.UtcNow;
-        appointment.DecisionBy = "Admin";
+        appointment.DecisionBy = await ResolveDecisionOwnerAsync();
 
         await _context.SaveChangesAsync();
 
@@ -148,6 +153,162 @@ public class AdminController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditService(EditServiceInputModel input)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["AdminMessage"] = "Hizmet bilgilerini doğrulayın.";
+            return RedirectToAction(nameof(Panel));
+        }
+
+        var service = await _context.Services.FirstOrDefaultAsync(s => s.Id == input.Id);
+        if (service is null)
+        {
+            TempData["AdminMessage"] = "Hizmet bulunamadı.";
+            return RedirectToAction(nameof(Panel));
+        }
+
+        service.Name = input.Name.Trim();
+        service.Description = string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim();
+        service.DurationMinutes = input.DurationMinutes;
+        service.Price = input.Price;
+
+        await _context.SaveChangesAsync();
+
+        TempData["AdminMessage"] = "Hizmet güncellendi.";
+        return RedirectToAction(nameof(Panel));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteService(int id)
+    {
+        var service = await _context.Services
+            .Include(s => s.CoachServices)
+            .FirstOrDefaultAsync(s => s.Id == id);
+
+        if (service is null)
+        {
+            TempData["AdminMessage"] = "Silinecek hizmet bulunamadı.";
+            return RedirectToAction(nameof(Panel));
+        }
+
+        if (service.CoachServices.Any())
+        {
+            _context.CoachServices.RemoveRange(service.CoachServices);
+        }
+
+        _context.Services.Remove(service);
+        await _context.SaveChangesAsync();
+
+        TempData["AdminMessage"] = "Hizmet silindi.";
+        return RedirectToAction(nameof(Panel));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateGymInfo([Bind(Prefix = "GymInfo")] GymInfoViewModel input)
+    {
+        if (!ModelState.IsValid)
+        {
+            var invalidModel = await BuildPanelViewModel(null, null, input);
+            return View("Panel", invalidModel);
+        }
+
+        var entity = await _context.GymInfos.FirstOrDefaultAsync();
+        if (entity is null)
+        {
+            entity = new GymInfo();
+            _context.GymInfos.Add(entity);
+        }
+
+        var trimmedName = input.Name?.Trim();
+        entity.Name = string.IsNullOrWhiteSpace(trimmedName) ? entity.Name : trimmedName;
+        entity.Address = NormalizeText(input.Address);
+        entity.Phone = NormalizeText(input.Phone);
+        entity.Email = NormalizeText(input.Email);
+        entity.Website = NormalizeText(input.Website);
+        entity.WeekdayHours = NormalizeText(input.WeekdayHours);
+        entity.WeekendHours = NormalizeText(input.WeekendHours);
+        entity.About = NormalizeText(input.About);
+        entity.Facilities = NormalizeText(input.Facilities);
+        entity.UpdatedAtUtc = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        TempData["AdminMessage"] = "Spor salonu bilgileri güncellendi.";
+        return RedirectToAction(nameof(Panel));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateGymHours([FromForm] List<GymOpeningHourInputModel> schedule)
+    {
+        schedule ??= new List<GymOpeningHourInputModel>();
+        var normalized = schedule
+            .GroupBy(item => item.DayOfWeek)
+            .Select(group => group.First())
+            .ToList();
+
+        var orderedSchedule = OrderSchedule(normalized);
+
+        foreach (var entry in orderedSchedule)
+        {
+            if (entry.IsClosed)
+            {
+                continue;
+            }
+
+            if (!TryParseTime(entry.OpenTime, out var open) || !TryParseTime(entry.CloseTime, out var close))
+            {
+                ModelState.AddModelError(string.Empty, $"{entry.DayOfWeek} günü için geçerli açılış/kapanış saati giriniz.");
+                continue;
+            }
+
+            if (close <= open)
+            {
+                ModelState.AddModelError(string.Empty, $"{entry.DayOfWeek} günü için kapanış saati açılıştan sonra olmalıdır.");
+            }
+        }
+
+        if (!ModelState.IsValid)
+        {
+            var invalidModel = await BuildPanelViewModel(null, null, null, orderedSchedule);
+            return View("Panel", invalidModel);
+        }
+
+        var existing = await _context.GymOpeningHours.ToDictionaryAsync(h => h.DayOfWeek);
+        foreach (var item in orderedSchedule)
+        {
+            if (!existing.TryGetValue(item.DayOfWeek, out var entity))
+            {
+                entity = new GymOpeningHour { DayOfWeek = item.DayOfWeek };
+                _context.GymOpeningHours.Add(entity);
+            }
+
+            if (item.IsClosed)
+            {
+                entity.IsClosed = true;
+                entity.OpenTime = null;
+                entity.CloseTime = null;
+            }
+            else
+            {
+                entity.IsClosed = false;
+                entity.OpenTime = TryParseTime(item.OpenTime, out var open) ? open : null;
+                entity.CloseTime = TryParseTime(item.CloseTime, out var close) ? close : null;
+            }
+            entity.UpdatedAtUtc = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+
+        TempData["AdminMessage"] = "Çalışma saatleri güncellendi.";
+        return RedirectToAction(nameof(Panel));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> EditCoach(EditCoachInputModel input)
     {
         if (!ModelState.IsValid)
@@ -222,7 +383,11 @@ public class AdminController : Controller
         return RedirectToAction(nameof(Panel));
     }
 
-    private async Task<AdminPanelViewModel> BuildPanelViewModel(NewCoachInputModel? coachForm = null, NewServiceInputModel? serviceForm = null)
+    private async Task<AdminPanelViewModel> BuildPanelViewModel(
+        NewCoachInputModel? coachForm = null,
+        NewServiceInputModel? serviceForm = null,
+        GymInfoViewModel? gymInfoForm = null,
+        IReadOnlyList<GymOpeningHourInputModel>? gymHoursForm = null)
     {
         var pending = await _context.AppointmentRequests
             .Where(a => a.Status == AppointmentStatus.Pending)
@@ -314,6 +479,10 @@ public class AdminController : Controller
             })
             .ToList();
 
+        var gymInfoEntity = await _context.GymInfos.AsNoTracking().FirstOrDefaultAsync();
+        var gymHoursEntities = await _context.GymOpeningHours.AsNoTracking().ToListAsync();
+        var usageMetrics = await BuildBookingUsageMetricsAsync();
+
         return new AdminPanelViewModel
         {
             PendingAppointments = pending,
@@ -323,8 +492,29 @@ public class AdminController : Controller
             NewCoach = coachForm ?? new NewCoachInputModel(),
             NewService = serviceForm ?? new NewServiceInputModel(),
             CoachSchedules = schedule,
-            BookingTimeSlots = BookingTimeSlots.All
+            GymInfo = gymInfoForm ?? BuildGymInfoViewModel(gymInfoEntity),
+            GymHours = gymHoursForm ?? BuildGymHoursViewModel(gymHoursEntities),
+            BookingUsageMetrics = usageMetrics
         };
+    }
+
+    private async Task<string> ResolveDecisionOwnerAsync()
+    {
+        var userId = HttpContext.Session.GetInt32(SessionKeys.UserId);
+        if (userId is null)
+        {
+            return RoleNames.Admin;
+        }
+
+        var admin = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId.Value);
+        if (admin is null)
+        {
+            return RoleNames.Admin;
+        }
+
+        var displayName = string.Join(" ", new[] { admin.FirstName, admin.LastName }
+            .Where(part => !string.IsNullOrWhiteSpace(part)));
+        return string.IsNullOrWhiteSpace(displayName) ? admin.Email : displayName;
     }
 
     private static string? NormalizeList(string? value)
@@ -341,5 +531,280 @@ public class AdminController : Controller
             .ToArray();
 
         return segments.Length == 0 ? null : string.Join(", ", segments);
+    }
+
+    private static GymInfoViewModel BuildGymInfoViewModel(GymInfo? entity)
+    {
+        if (entity is null)
+        {
+            return new GymInfoViewModel
+            {
+                Name = "GymGyme Studio",
+                WeekdayHours = "Hafta içi 08:00 - 22:00",
+                WeekendHours = "Hafta sonu 09:00 - 20:00"
+            };
+        }
+
+        return new GymInfoViewModel
+        {
+            Name = entity.Name,
+            Address = entity.Address,
+            Phone = entity.Phone,
+            Email = entity.Email,
+            Website = entity.Website,
+            WeekdayHours = entity.WeekdayHours,
+            WeekendHours = entity.WeekendHours,
+            About = entity.About,
+            Facilities = entity.Facilities,
+            UpdatedAtUtc = entity.UpdatedAtUtc
+        };
+    }
+
+    private static string? NormalizeText(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private static TimeSpan? ParseTimeSpan(string? value)
+    {
+        return TryParseTime(value, out var result) ? result : null;
+    }
+
+    private static bool TryParseTime(string? value, out TimeSpan time)
+    {
+        return TimeSpan.TryParse(value, out time);
+    }
+
+    private static IReadOnlyList<GymOpeningHourInputModel> BuildGymHoursViewModel(IEnumerable<GymOpeningHour>? entities)
+    {
+        var map = entities?.ToDictionary(e => e.DayOfWeek) ?? new Dictionary<DayOfWeek, GymOpeningHour>();
+        var order = new[]
+        {
+            DayOfWeek.Monday,
+            DayOfWeek.Tuesday,
+            DayOfWeek.Wednesday,
+            DayOfWeek.Thursday,
+            DayOfWeek.Friday,
+            DayOfWeek.Saturday,
+            DayOfWeek.Sunday
+        };
+
+        return order
+            .Select(day => map.TryGetValue(day, out var hour)
+                ? new GymOpeningHourInputModel
+                {
+                    DayOfWeek = day,
+                    IsClosed = hour.IsClosed,
+                    OpenTime = hour.OpenTime?.ToString(@"hh\:mm"),
+                    CloseTime = hour.CloseTime?.ToString(@"hh\:mm")
+                }
+                : new GymOpeningHourInputModel
+                {
+                    DayOfWeek = day,
+                    IsClosed = false,
+                    OpenTime = day is DayOfWeek.Saturday or DayOfWeek.Sunday ? "09:00" : "08:00",
+                    CloseTime = day is DayOfWeek.Saturday or DayOfWeek.Sunday ? "20:00" : "22:00"
+                })
+            .ToList();
+    }
+
+    private static IReadOnlyList<GymOpeningHourInputModel> OrderSchedule(IEnumerable<GymOpeningHourInputModel> inputs)
+    {
+        var source = (inputs ?? Enumerable.Empty<GymOpeningHourInputModel>())
+            .GroupBy(item => item.DayOfWeek)
+            .Select(group => group.First())
+            .ToDictionary(item => item.DayOfWeek);
+
+        return Enum.GetValues<DayOfWeek>()
+            .OrderBy(day => ((int)day + 6) % 7)
+            .Select(day => source.TryGetValue(day, out var existing)
+                ? new GymOpeningHourInputModel
+                {
+                    DayOfWeek = existing.DayOfWeek,
+                    IsClosed = existing.IsClosed,
+                    OpenTime = existing.OpenTime,
+                    CloseTime = existing.CloseTime
+                }
+                : new GymOpeningHourInputModel { DayOfWeek = day, IsClosed = true })
+            .ToList();
+    }
+
+    private async Task<IReadOnlyList<BookingUsageMetric>> BuildBookingUsageMetricsAsync()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var earliest = new DateOnly(today.Year, today.Month, 1).AddMonths(-11);
+
+        var rows = await _context.AppointmentRequests
+            .AsNoTracking()
+            .Where(a => a.Status == AppointmentStatus.Approved && a.Date >= earliest)
+            .Select(a => new AppointmentUsageRow
+            {
+                Date = a.Date,
+                ServiceName = a.ServiceName,
+                Coach = a.Coach
+            })
+            .ToListAsync();
+
+        return BuildUsageSeries(rows, today);
+    }
+
+    private static IReadOnlyList<BookingUsageMetric> BuildUsageSeries(IEnumerable<AppointmentUsageRow> rows, DateOnly today)
+    {
+        var history = rows?.ToList() ?? new List<AppointmentUsageRow>();
+        var configs = BuildUsagePeriodConfigs(today);
+        var metrics = new List<BookingUsageMetric>(configs.Count * 2);
+
+        foreach (var config in configs)
+        {
+            var filtered = history.Where(r => r.Date >= config.FilterStart).ToList();
+            metrics.Add(BuildUsageMetric(filtered, config, "service", r => r.ServiceName));
+            metrics.Add(BuildUsageMetric(filtered, config, "coach", r => r.Coach));
+        }
+
+        return metrics;
+    }
+
+    private static IReadOnlyList<UsagePeriodConfig> BuildUsagePeriodConfigs(DateOnly today)
+    {
+        var culture = CultureInfo.GetCultureInfo("tr-TR");
+        var configs = new List<UsagePeriodConfig>(3);
+
+        var weeklyStart = today.AddDays(-6);
+        var weeklyLabels = Enumerable.Range(0, 7)
+            .Select(offset => weeklyStart.AddDays(offset).ToString("ddd dd", culture))
+            .ToList()
+            .AsReadOnly();
+        configs.Add(new UsagePeriodConfig
+        {
+            Key = "weekly",
+            FilterStart = weeklyStart,
+            BucketCount = weeklyLabels.Count,
+            Labels = weeklyLabels,
+            BucketSelector = row =>
+            {
+                var diff = row.Date.DayNumber - weeklyStart.DayNumber;
+                return diff is >= 0 and < 7 ? diff : null;
+            }
+        });
+
+        var monthlyStart = today.AddDays(-29);
+        var monthlyLabels = Enumerable.Range(0, 30)
+            .Select(offset => monthlyStart.AddDays(offset).ToString("dd MMM", culture))
+            .ToList()
+            .AsReadOnly();
+        configs.Add(new UsagePeriodConfig
+        {
+            Key = "monthly",
+            FilterStart = monthlyStart,
+            BucketCount = monthlyLabels.Count,
+            Labels = monthlyLabels,
+            BucketSelector = row =>
+            {
+                var diff = row.Date.DayNumber - monthlyStart.DayNumber;
+                return diff is >= 0 and < 30 ? diff : null;
+            }
+        });
+
+        var monthAnchor = new DateOnly(today.Year, today.Month, 1).AddMonths(-11);
+        var yearlyMonths = Enumerable.Range(0, 12)
+            .Select(offset => monthAnchor.AddMonths(offset))
+            .ToList();
+        var yearlyLabels = yearlyMonths
+            .Select(date => date.ToString("MMM yy", culture))
+            .ToList()
+            .AsReadOnly();
+        configs.Add(new UsagePeriodConfig
+        {
+            Key = "yearly",
+            FilterStart = monthAnchor,
+            BucketCount = yearlyLabels.Count,
+            Labels = yearlyLabels,
+            BucketSelector = row =>
+            {
+                if (row.Date < monthAnchor)
+                {
+                    return null;
+                }
+
+                var diff = (row.Date.Year - monthAnchor.Year) * 12 + row.Date.Month - monthAnchor.Month;
+                if (diff < 0 || diff >= yearlyLabels.Count)
+                {
+                    return null;
+                }
+
+                return diff;
+            }
+        });
+
+        return configs;
+    }
+
+    private static BookingUsageMetric BuildUsageMetric(
+        IEnumerable<AppointmentUsageRow> rows,
+        UsagePeriodConfig config,
+        string categoryType,
+        Func<AppointmentUsageRow, string?> labelSelector)
+    {
+        var seriesMap = new Dictionary<string, int[]>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var row in rows)
+        {
+            var bucketIndex = config.BucketSelector(row);
+            if (bucketIndex is null)
+            {
+                continue;
+            }
+
+            var label = NormalizeUsageLabel(labelSelector(row));
+            if (!seriesMap.TryGetValue(label, out var points))
+            {
+                points = new int[config.BucketCount];
+                seriesMap[label] = points;
+            }
+
+            points[bucketIndex.Value] += 1;
+        }
+
+        var series = seriesMap
+            .Select(entry => new BookingUsageMetricSeries
+            {
+                Label = entry.Key,
+                Points = Array.AsReadOnly(entry.Value),
+                Total = entry.Value.Sum()
+            })
+            .OrderByDescending(item => item.Total)
+            .ThenBy(item => item.Label, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return new BookingUsageMetric
+        {
+            Period = config.Key,
+            CategoryType = categoryType,
+            Labels = config.Labels,
+            Series = series
+        };
+    }
+
+    private static string NormalizeUsageLabel(string? label)
+    {
+        return string.IsNullOrWhiteSpace(label)
+            ? "Tanımsız"
+            : label.Trim();
+    }
+
+    private sealed record AppointmentUsageRow
+    {
+        public DateOnly Date { get; init; }
+        public string? ServiceName { get; init; }
+        public string? Coach { get; init; }
+    }
+
+    private sealed class UsagePeriodConfig
+    {
+        public string Key { get; init; } = string.Empty;
+        public DateOnly FilterStart { get; init; }
+        public int BucketCount { get; init; }
+        public IReadOnlyList<string> Labels { get; init; } = Array.Empty<string>();
+        public Func<AppointmentUsageRow, int?> BucketSelector { get; init; } = default!;
     }
 }

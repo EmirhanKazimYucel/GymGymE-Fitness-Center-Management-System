@@ -3,6 +3,18 @@
 @{
     Layout = "_DashboardLayout";
     ViewData["Title"] = "Diyet Planım";
+
+    var primaryVisual = Model.MealVisuals?.FirstOrDefault();
+    var mealLegend = Model.MealIdeas?
+        .Where(meal => meal is not null)
+        .Select(meal =>
+        {
+            var title = string.IsNullOrWhiteSpace(meal!.Meal) ? "Öğün" : meal.Meal;
+            return string.IsNullOrWhiteSpace(meal.Description) ? title : $"{title}: {meal.Description}";
+        })
+        .Where(text => !string.IsNullOrWhiteSpace(text))
+        .ToList()
+        ?? new List<string>();
 }
 
 <div class="diet-page">
@@ -114,7 +126,7 @@
         <article class="diet-card focus-card">
             <h2>Bugün Odaklan</h2>
             <ul>
-                @foreach (var tip in Model.FocusTips)
+                @foreach (var tip in Model.FocusTips ?? Array.Empty<string>())
                 {
                     <li>@tip</li>
                 }
@@ -124,8 +136,13 @@
         <article class="diet-card meals-card">
             <h2>Örnek Öğünler</h2>
             <div class="meal-list">
-                @foreach (var meal in Model.MealIdeas)
+                @foreach (var meal in Model.MealIdeas ?? Array.Empty<WebProje.Models.DietMealIdea>())
                 {
+                    if (meal is null)
+                    {
+                        continue;
+                    }
+
                     <div class="meal-chip" style="border-color:@meal.Accent;box-shadow:0 8px 15px rgba(0,0,0,0.05);">
                         <small>@meal.Meal</small>
                         <p>@meal.Description</p>
@@ -133,6 +150,56 @@
                 }
             </div>
         </article>
+    </section>
+
+    <section class="profile-card diet-gallery">
+        <div class="diet-gallery-head">
+            <div>
+                <p class="stat-label">Görsel Menü</p>
+                <h2>Örnek Tabak Kompozisyonları</h2>
+                <p>Diyet planındaki her öğün için sunum ve porsiyon fikirlerini görselleştirir.</p>
+            </div>
+            <div class="diet-gallery-note">
+                Temsili görseller · Aynı renk kodları raporlarda da kullanılır.
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Model.MealVisualErrorMessage))
+            {
+                <div class="ai-alert">@Model.MealVisualErrorMessage</div>
+            }
+        </div>
+        <div class="diet-gallery-grid">
+            @if (primaryVisual is WebProje.Models.DietMealVisual visual)
+            {
+                var resolvedSrc = string.IsNullOrWhiteSpace(visual.ImageUrl)
+                    ? Url.Content("~/images/diet/menu-collage.svg")
+                    : (visual.ImageUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase) || visual.ImageUrl.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
+                        ? visual.ImageUrl
+                        : Url.Content(visual.ImageUrl));
+                <figure class="meal-visual-card" style="--meal-accent:@visual.Accent">
+                    <div class="meal-image-shell">
+                        <img src="@resolvedSrc" alt="Tüm öğünleri tek görselde gösteren öneri" loading="lazy" />
+                    </div>
+                    <figcaption>
+                        <small>Günlük Menü</small>
+                        <p>@visual.Description</p>
+                        @if (mealLegend.Count > 0)
+                        {
+                            <ul class="meal-legend">
+                                @foreach (var legend in mealLegend)
+                                {
+                                    <li>@legend</li>
+                                }
+                            </ul>
+                        }
+                    </figcaption>
+                    <span class="meal-visual-chip">AI Menü</span>
+                </figure>
+            }
+            else
+            {
+                <div class="meal-visual-placeholder">Görsel yüklenemedi.</div>
+            }
+        </div>
     </section>
 
     <div class="diet-actions">

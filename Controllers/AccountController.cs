@@ -12,8 +12,11 @@ namespace WebProje.Controllers;
 
 public class AccountController : Controller
 {
+<<<<<<< Updated upstream
+=======
     private const string RoleAdmin = "Admin";
     private const string RoleUser = "User";
+>>>>>>> Stashed changes
     private readonly FitnessContext _context;
     private readonly IPasswordHasher<AppUser> _passwordHasher;
 
@@ -73,8 +76,13 @@ public class AccountController : Controller
 
         return user.Role switch
         {
+<<<<<<< Updated upstream
+            RoleNames.Admin => RedirectToAction("Panel", "Admin"),
+            RoleNames.User => RedirectToAction("Index", "Dashboard"),
+=======
             RoleAdmin => RedirectToAction("Panel", "Admin"),
             RoleUser => RedirectToAction("Index", "Dashboard"),
+>>>>>>> Stashed changes
             _ => RedirectToAction("Index", "Home")
         };
     }
@@ -101,7 +109,11 @@ public class AccountController : Controller
             Email = model.Email,
             PhoneNumber = model.PhoneNumber,
             BirthDate = model.BirthDate,
+<<<<<<< Updated upstream
+            Role = RoleNames.User
+=======
             Role = RoleUser
+>>>>>>> Stashed changes
         };
 
         user.PasswordHash = _passwordHasher.HashPassword(user, model.Password);
@@ -113,6 +125,7 @@ public class AccountController : Controller
         return RedirectToAction(nameof(Login));
     }
 
+<<<<<<< Updated upstream
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Logout()
@@ -122,6 +135,8 @@ public class AccountController : Controller
         return RedirectToAction(nameof(Login));
     }
 
+=======
+>>>>>>> Stashed changes
     private IActionResult BuildAuthView(LoginViewModel? login, RegisterViewModel? register, string activeTab)
     {
         var viewModel = new AuthPageViewModel

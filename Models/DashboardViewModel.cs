@@ -6,8 +6,11 @@ public class DashboardViewModel
     public string UserEmail { get; init; } = string.Empty;
     public IReadOnlyList<UserAppointmentItem> Appointments { get; init; } = Array.Empty<UserAppointmentItem>();
     public IReadOnlyList<UserAppointmentItem> UpcomingAppointments { get; init; } = Array.Empty<UserAppointmentItem>();
+<<<<<<< Updated upstream
     public IReadOnlyList<WeeklyLeaderboardEntry> WeeklyLeaderboard { get; init; } = Array.Empty<WeeklyLeaderboardEntry>();
     public IReadOnlyList<string> ActivityTypes { get; init; } = Array.Empty<string>();
+=======
+>>>>>>> Stashed changes
 }
 
 public class UserAppointmentItem
@@ -18,6 +21,7 @@ public class UserAppointmentItem
     public string Service { get; init; } = string.Empty;
     public string Status { get; init; } = AppointmentStatus.Pending;
 }
+<<<<<<< Updated upstream
 
 public class WeeklyLeaderboardEntry
 {
@@ -28,3 +32,5 @@ public class WeeklyLeaderboardEntry
     public string Initials { get; init; } = string.Empty;
     public int CompletedCount { get; init; }
 }
+=======
+>>>>>>> Stashed changes

@@ -1,4 +1,4 @@
-@using System.Text.Json
+﻿@using System.Text.Json
 @using System.Text.Encodings.Web
 @model WebProje.Models.AdminPanelViewModel
 @{
@@ -11,1060 +11,1004 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin Paneli</title>
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     <style>
         body {
-            margin:0;
-            font-family:'Inter', sans-serif;
-            background:#101214;
-            color:white;
-            display:flex;
-            min-height:100vh;
+            font-family: 'Inter', sans-serif;
+            background-color: #f5f6f8;
+        }
+        .admin-shell {
+            min-height: 100vh;
         }
         .admin-sidebar {
-            width:280px;
-            background:#15181c;
-            padding:32px;
-            display:flex;
-            flex-direction:column;
-            gap:24px;
+            background: #0f172a;
+            color: #f8fafc;
         }
-        .sidebar-nav {
-            .admin-logout {
-                margin-top: 32px;
-            }
-            .logout-btn {
-                width: 100%;
-                padding: 12px 20px;
-                border-radius: 16px;
-                border: none;
-                font-weight: 700;
-                background: rgba(255, 255, 255, 0.2);
-                color: white;
-                cursor: pointer;
-                transition: background 0.2s, transform 0.2s;
-            }
-            .logout-btn:hover {
-                background: rgba(255, 255, 255, 0.35);
-                transform: translateY(-1px);
-            }
-            display:flex;
-            flex-direction:column;
-            gap:10px;
+        .admin-sidebar .nav-link {
+            color: rgba(248, 250, 252, 0.75);
         }
-        .sidebar-nav button {
-            border:1px solid rgba(255,255,255,0.08);
-            background:transparent;
-            color:white;
-            padding:10px 14px;
-            border-radius:12px;
-            text-align:left;
-            font-weight:500;
-            cursor:pointer;
-            transition:all 0.2s ease;
+        .admin-sidebar .nav-link.active {
+            background: #22d3ee;
+            color: #0f172a;
+            font-weight: 600;
         }
-        .sidebar-nav button:hover {
-            border-color:rgba(154,215,52,0.6);
+        .usage-chart-wrapper {
+            position: relative;
+            min-height: 320px;
         }
-        .sidebar-nav button.active {
-            background:#9AD734;
-            color:#101214;
-            border-color:#9AD734;
-        }
-        .admin-main {
-            flex:1;
-            padding:40px;
-        }
-        .panel-section {
-            display:none;
-        }
-        .panel-section.active {
-            display:block;
-            animation:fadeIn 0.25s ease;
-        }
-        .panel-section > *:last-child {
-            margin-bottom:0;
-        }
-        .panel-section + .panel-section {
-            margin-top:24px;
-        }
-        @@keyframes fadeIn {
-            from { opacity:0; transform:translateY(6px); }
-            to { opacity:1; transform:none; }
-        }
-        .admin-card {
-            background:#1f2329;
-            border-radius:20px;
-            padding:24px;
-            margin-bottom:24px;
-        }
-        .tag {
-            display:inline-block;
-            padding:6px 14px;
-            border-radius:999px;
-            background:#222831;
-            font-size:12px;
-            color:#9AD734;
-            margin-left:8px;
-        }
-        .admin-grid {
-            display:grid;
-            grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));
-            gap:24px;
-        }
-        .admin-table {
-            width:100%;
-            border-collapse:separate;
-            border-spacing:0;
-            margin-top:16px;
-        }
-        .admin-table th,
-        .admin-table td {
-            padding:12px;
-            border-bottom:1px solid rgba(255,255,255,0.08);
-            text-align:left;
-            font-size:14px;
-        }
-        .pill {
-            display:inline-flex;
-            padding:4px 10px;
-            border-radius:12px;
-            background:rgba(154,215,52,0.15);
-            color:#9AD734;
-            font-size:12px;
-            margin-right:6px;
-        }
-        .cta-btn {
-            border:none;
-            background:#9AD734;
-            color:#101214;
-            padding:10px 18px;
-            border-radius:12px;
-            font-weight:600;
-            cursor:pointer;
-        }
-        .status-chip {
-            display:inline-flex;
-            align-items:center;
-            gap:6px;
-            padding:4px 10px;
-            border-radius:999px;
-            font-size:12px;
-        }
-        .status-chip.pending {
-            background:rgba(255, 193, 7, 0.15);
-            color:#ffc107;
-        }
-        .status-chip.approved {
-            background:rgba(74, 222, 128, 0.15);
-            color:#4ade80;
-        }
-        .status-chip.rejected {
-            background:rgba(248, 113, 113, 0.15);
-            color:#f87171;
-        }
-        .admin-actions {
-            display:flex;
-            gap:8px;
-        }
-        .admin-actions form {
-            display:inline;
-        }
-        .admin-actions button {
-            padding:6px 12px;
-            border:none;
-            border-radius:10px;
-            font-weight:600;
-            cursor:pointer;
-        }
-        .btn-approve { background:#4ade80; color:#0f172a; }
-        .btn-reject { background:#f87171; color:white; }
-        .flash-message {
-            background:#1f2937;
-            border:1px solid rgba(255,255,255,0.08);
-            padding:16px;
-            border-radius:16px;
-            margin-bottom:24px;
-        }
-        .coach-list {
-            display:flex;
-            flex-direction:column;
-            gap:16px;
-        }
-        .coach-card {
-            padding:16px;
-            border-radius:16px;
-            background:rgba(255,255,255,0.03);
-            border:1px solid rgba(255,255,255,0.05);
-        }
-        .coach-card h4 {
-            margin:0 0 6px 0;
-        }
-        .coach-actions {
-            display:flex;
-            flex-direction:column;
-            gap:12px;
-            margin-top:12px;
-        }
-        .coach-edit {
-            border:1px solid rgba(148,163,184,0.2);
-            border-radius:14px;
-            background:rgba(17,19,24,0.85);
-            overflow:hidden;
-        }
-        .coach-edit summary {
-            cursor:pointer;
-            font-weight:600;
-            padding:10px 14px;
-            list-style:none;
-        }
-        .coach-edit summary::-webkit-details-marker {
-            display:none;
-        }
-        .coach-edit[open] summary {
-            border-bottom:1px solid rgba(148,163,184,0.2);
-        }
-        .coach-edit form {
-            padding:12px 14px 16px;
-            background:transparent;
-        }
-        .danger-btn {
-            border:none;
-            background:#f87171;
-            color:white;
-            padding:8px 16px;
-            border-radius:12px;
-            font-weight:600;
-            cursor:pointer;
-        }
-        .admin-form {
-            display:flex;
-            flex-direction:column;
-            gap:12px;
-        }
-        .admin-form label {
-            font-size:13px;
-            color:#94a3b8;
-        }
-        .admin-form input,
-        .admin-form textarea {
-            width:100%;
-            border-radius:12px;
-            border:1px solid rgba(148,163,184,0.4);
-            background:#111318;
-            color:white;
-            padding:10px 12px;
-            font-family:inherit;
-        }
-        .admin-form select {
-            width:100%;
-            border-radius:12px;
-            border:1px solid rgba(148,163,184,0.4);
-            background:#111318;
-            color:white;
-            padding:10px 12px;
-            font-family:inherit;
-        }
-        .validation-summary {
-            background:rgba(248,113,113,0.12);
-            border:1px solid rgba(248,113,113,0.4);
-            padding:12px;
-            border-radius:12px;
-            color:#fecaca;
-        }
-        .service-radio-list {
-            display:flex;
-            flex-wrap:wrap;
-            gap:8px;
-        }
-        .service-option {
-            position:relative;
-            display:inline-flex;
-            align-items:center;
-            gap:6px;
-            padding:8px 14px;
-            border-radius:999px;
-            border:1px solid rgba(154,215,52,0.3);
-            background:rgba(154,215,52,0.08);
-            cursor:pointer;
-            font-size:13px;
-            color:white;
-            transition:all 0.2s ease;
-        }
-        .service-option input[type="checkbox"] {
-            appearance:none;
-            width:14px;
-            height:14px;
-            border-radius:50%;
-            border:1px solid rgba(255,255,255,0.4);
-            display:inline-flex;
-            align-items:center;
-            justify-content:center;
-            background:transparent;
-            position:relative;
-        }
-        .service-option input[type="checkbox"]:checked {
-            border-color:#9AD734;
-            background:#9AD734;
-        }
-        .service-option input[type="checkbox"]:checked::after {
-            content:"";
-            width:6px;
-            height:6px;
-            border-radius:50%;
-            background:#101214;
-            display:block;
-        }
-        .service-option input[type="checkbox"]:focus-visible {
-            outline:2px solid rgba(154,215,52,0.6);
-            outline-offset:2px;
-        }
-        .service-option input[type="checkbox"] + span {
-            font-weight:500;
-        }
-        .service-option input[type="checkbox"]:checked + span {
-            color:#9AD734;
-        }
-        .service-table {
-            width:100%;
-            border-collapse:separate;
-            border-spacing:0;
-            margin-top:16px;
-        }
-        .service-table th,
-        .service-table td {
-            padding:10px;
-            border-bottom:1px solid rgba(255,255,255,0.08);
-            text-align:left;
-            font-size:13px;
-        }
-        .schedule-list {
-            display:flex;
-            flex-direction:column;
-            gap:14px;
-        }
-        .schedule-card {
-            border:1px solid rgba(148,163,184,0.15);
-            border-radius:16px;
-            padding:16px;
-            background:rgba(17,19,24,0.85);
-        }
-        .schedule-card h4 {
-            margin:0 0 10px 0;
-        }
-        .schedule-card table {
-            width:100%;
-            border-collapse:separate;
-            border-spacing:0;
-        }
-        .schedule-card th,
-        .schedule-card td {
-            padding:8px 6px;
-            border-bottom:1px solid rgba(255,255,255,0.09);
-            font-size:13px;
-            text-align:left;
-        }
-        .schedule-card tr:last-child td {
-            border-bottom:none;
-        }
-        .calendar-header {
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            margin-bottom:12px;
-        }
-        .calendar-controls {
-            display:flex;
-            gap:12px;
-            align-items:center;
-            margin-bottom:16px;
-        }
-        .calendar-controls select {
-            border-radius:12px;
-            border:1px solid rgba(148,163,184,0.4);
-            background:#111318;
-            color:white;
-            padding:8px 10px;
+        .usage-chart-wrapper[data-empty="true"]::after {
+            content: "Grafik için veri yok";
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            background-color: rgba(148, 163, 184, 0.1);
+            border-radius: 0.75rem;
         }
         .calendar-grid {
-            display:grid;
-            grid-template-columns:repeat(7, minmax(0, 1fr));
-            gap:6px;
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 0.5rem;
         }
         .calendar-day {
-            min-height:82px;
-            border-radius:12px;
-            border:1px solid rgba(148,163,184,0.2);
-            padding:8px;
-            font-size:12px;
-            display:flex;
-            flex-direction:column;
-            gap:6px;
-        }
-        .calendar-day .day-number {
-            font-weight:600;
-            font-size:13px;
+            min-height: 90px;
+            border-radius: 0.75rem;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            padding: 0.5rem;
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            background-color: #fff;
         }
         .calendar-day.available {
-            background:rgba(74,222,128,0.12);
-            border-color:rgba(74,222,128,0.4);
+            background-color: #ecfeff;
+            border-color: #67e8f9;
         }
         .calendar-day.booked {
-            background:rgba(248,113,113,0.12);
-            border-color:rgba(248,113,113,0.4);
+            background-color: #fee2e2;
+            border-color: #f87171;
         }
         .calendar-day.past {
-            opacity:0.55;
-            filter:grayscale(0.6);
+            opacity: 0.6;
         }
         .calendar-day.empty {
-            border:none;
-            background:transparent;
+            background: transparent;
+            border: none;
         }
         .calendar-day ul {
-            margin:0;
-            padding-left:14px;
+            padding-left: 1rem;
+            margin-bottom: 0;
         }
-        .calendar-day li {
-            list-style:disc;
-        }
-        .api-toolbar {
-            display:grid;
-            grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
-            gap:16px;
-            margin-top:18px;
-        }
-        .api-toolbar label {
-            font-size:12px;
-            text-transform:uppercase;
-            display:block;
-            margin-bottom:6px;
-            letter-spacing:0.05em;
-            color:#94a3b8;
-        }
-        .api-toolbar input,
-        .api-toolbar select {
-            width:100%;
-            border-radius:10px;
-            border:1px solid rgba(148,163,184,0.4);
-            background:#0f1215;
-            color:white;
-            padding:10px 12px;
-            font-family:inherit;
-            appearance:none;
-        }
-        .api-actions {
-            display:flex;
-            flex-wrap:wrap;
-            gap:12px;
-            margin-top:18px;
-        }
-        .cta-btn.ghost {
-            background:transparent;
-            color:#9AD734;
-            border:1px solid rgba(154,215,52,0.5);
-        }
-        .api-status {
-            padding:12px 14px;
-            border-radius:12px;
-            background:rgba(148,163,184,0.12);
-            border:1px solid rgba(148,163,184,0.25);
-            margin-bottom:16px;
-            font-size:14px;
-        }
-        .api-status[data-tone="loading"] {
-            border-color:rgba(59,130,246,0.4);
-            color:#93c5fd;
-        }
-        .api-status[data-tone="success"] {
-            border-color:rgba(74,222,128,0.4);
-            color:#86efac;
-        }
-        .api-status[data-tone="error"] {
-            border-color:rgba(248,113,113,0.5);
-            color:#fecaca;
-        }
-        .api-table-wrapper {
-            overflow:auto;
-        }
-        .empty-state td {
-            text-align:center;
-            padding:24px 12px;
-            color:#94a3b8;
+        .coach-service-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.15rem 0.65rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            border: 1px solid rgba(15, 23, 42, 0.15);
+            margin: 0.1rem;
+            background-color: #e2e8f0;
         }
     </style>
 </head>
 <body>
-    <aside class="admin-sidebar">
-        <h2>Yönetici</h2>
-        <div>
-            <div>Hoş geldiniz</div>
-            <strong>Admin Kullanıcısı</strong>
-        </div>
-        <nav class="sidebar-nav">
-            <button type="button" class="active" data-target="overview">Genel Bakış</button>
-            <button type="button" data-target="appointments">Randevular</button>
-            <button type="button" data-target="services">Hizmetler</button>
-            <button type="button" data-target="coaches">Antrenörler</button>
-            <button type="button" data-target="coach-api">API · Antrenörler</button>
-            <button type="button" data-target="schedule">Planlayıcı</button>
-        </nav>
-        <form class="admin-logout" asp-controller="Account" asp-action="Logout" method="post">
-            @Html.AntiForgeryToken()
-            <button type="submit" class="logout-btn">Çıkış Yap</button>
-        </form>
-    </aside>
-    <main class="admin-main">
-        @if (TempData["LoginMessage"] is string loginMessage)
-        {
-            <div class="flash-message">
-                <strong>@loginMessage</strong>
-            </div>
-        }
-        @if (TempData["AdminMessage"] is string adminMessage)
-        {
-            <div class="flash-message">
-                <strong>@adminMessage</strong>
-            </div>
-        }
-        <div class="panel-section active" data-section="overview">
-            <div class="admin-card">
-                <h2>Panel Özeti <span class="tag">Beta</span></h2>
-                <p>Bu alan yalnızca yöneticilere özeldir. Gelecekte kullanıcı yönetimi, içerik onayı ve raporlar burada yer alacak.</p>
-            </div>
-        </div>
-        <div class="panel-section" data-section="appointments">
-            <section class="admin-card">
-                <h3>Bekleyen Randevu Talepleri</h3>
-                @if (!Model.PendingAppointments.Any())
-                {
-                    <p>Şu anda onay bekleyen talep bulunmuyor.</p>
-                }
-                else
-                {
-                    <table class="admin-table">
-                        <thead>
-                            <tr>
-                                <th>Üye</th>
-                                <th>İletişim</th>
-                                <th>Tarih / Saat</th>
-                                <th>Koç</th>
-                                <th>Not</th>
-                                <th>İşlem</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        @foreach (var appointment in Model.PendingAppointments)
-                        {
-                            <tr>
-                                <td>@appointment.FullName</td>
-                                <td>
-                                    <div>@appointment.Email</div>
-                                    @if (!string.IsNullOrWhiteSpace(appointment.PhoneNumber))
-                                    {
-                                        <small>@appointment.PhoneNumber</small>
-                                    }
-                                </td>
-                                <td>@appointment.Date.ToString("dd MMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("tr-TR"))<br />@appointment.TimeSlot</td>
-                                <td>@appointment.Coach</td>
-                                <td>@appointment.Notes</td>
-                                <td>
-                                    <div class="admin-actions">
-                                        <form asp-action="UpdateAppointmentStatus" method="post">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="id" value="@appointment.Id" />
-                                            <input type="hidden" name="actionType" value="approve" />
-                                            <button type="submit" class="btn-approve">Onayla</button>
-                                        </form>
-                                        <form asp-action="UpdateAppointmentStatus" method="post">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="id" value="@appointment.Id" />
-                                            <input type="hidden" name="actionType" value="reject" />
-                                            <button type="submit" class="btn-reject">Reddet</button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                        </tbody>
-                    </table>
-                }
-            </section>
-            <section class="admin-card">
-                <h3>Son Kararlar</h3>
-                @if (!Model.RecentDecisions.Any())
-                {
-                    <p>Henüz onaylanmış veya reddedilmiş talep yok.</p>
-                }
-                else
-                {
-                    <table class="admin-table">
-                        <thead>
-                            <tr>
-                                <th>Üye</th>
-                                <th>Tarih/Saat</th>
-                                <th>Koç</th>
-                                <th>Durum</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var decision in Model.RecentDecisions)
-                            {
-                                <tr>
-                                    <td>@decision.FullName</td>
-                                    <td>@decision.Date.ToString("dd MMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("tr-TR")) - @decision.TimeSlot</td>
-                                    <td>@decision.Coach</td>
-                                    <td>
-                                        @{
-                                            var statusClass = decision.Status == WebProje.Models.AppointmentStatus.Approved ? "approved" : "rejected";
-                                        }
-                                        <span class="status-chip @statusClass">@decision.Status</span>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                }
-            </section>
-        </div>
-        <div class="panel-section" data-section="services">
-            <div class="admin-grid">
-
-                <section class="admin-card">
-                    <h3>Hizmetler</h3>
-                    @if (!Model.Services.Any())
-                    {
-                        <p>Henüz kayıtlı hizmet yok.</p>
-                    }
-                    else
-                    {
-                        <table class="service-table">
-                            <thead>
-                                <tr>
-                                    <th>Ad</th>
-                                    <th>Açıklama</th>
-                                    <th>Süre</th>
-                                    <th>Ücret</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var service in Model.Services)
-                                {
-                                    <tr>
-                                        <td>@service.Name</td>
-                                        <td>@(string.IsNullOrWhiteSpace(service.Description) ? "-" : service.Description)</td>
-                                        <td>@(service.DurationMinutes.HasValue ? service.DurationMinutes + " dk" : "-")</td>
-                                        <td>@(service.Price.HasValue ? service.Price.Value.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("tr-TR")) : "-")</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    }
-                </section>
-            </div>
-            <section class="admin-card">
-                <h3>Yeni Hizmet Ekle</h3>
-                <form asp-action="AddService" method="post" class="admin-form">
+    <div class="container-fluid admin-shell">
+        <div class="row g-0 min-vh-100">
+            <aside class="col-12 col-md-4 col-lg-3 col-xxl-2 admin-sidebar d-flex flex-column p-4">
+                <div class="mb-4">
+                    <p class="text-white-50 mb-1 small">Hoş geldiniz</p>
+                    <h5 class="mb-0">Admin Kullanıcısı</h5>
+                </div>
+                <div class="nav nav-pills flex-column gap-2" id="adminTab" role="tablist">
+                    <button class="nav-link active" id="overview-tab" data-bs-toggle="pill" data-bs-target="#admin-overview" type="button" role="tab">Genel Bakış</button>
+                    <button class="nav-link" id="appointments-tab" data-bs-toggle="pill" data-bs-target="#admin-appointments" type="button" role="tab">Randevular</button>
+                    <button class="nav-link" id="services-tab" data-bs-toggle="pill" data-bs-target="#admin-services" type="button" role="tab">Hizmetler</button>
+                    <button class="nav-link" id="coaches-tab" data-bs-toggle="pill" data-bs-target="#admin-coaches" type="button" role="tab">Antrenörler</button>
+                    <button class="nav-link" id="api-tab" data-bs-toggle="pill" data-bs-target="#admin-coach-api" type="button" role="tab">API</button>
+                    <button class="nav-link" id="schedule-tab" data-bs-toggle="pill" data-bs-target="#admin-schedule" type="button" role="tab">Takvim</button>
+                    <button class="nav-link" id="gym-tab" data-bs-toggle="pill" data-bs-target="#admin-gym" type="button" role="tab">Salon Bilgileri</button>
+                </div>
+                <form class="mt-auto pt-4" asp-controller="Account" asp-action="Logout" method="post">
                     @Html.AntiForgeryToken()
-                    <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
-                    <div>
-                        <label asp-for="NewService.Name"></label>
-                        <input asp-for="NewService.Name" />
-                        <span asp-validation-for="NewService.Name" class="text-danger"></span>
-                    </div>
-                    <div>
-                        <label asp-for="NewService.Description"></label>
-                        <textarea asp-for="NewService.Description" rows="2"></textarea>
-                    </div>
-                    <div>
-                        <label asp-for="NewService.DurationMinutes">Süre (dk)</label>
-                        <input asp-for="NewService.DurationMinutes" type="number" min="0" />
-                    </div>
-                    <div>
-                        <label asp-for="NewService.Price">Ücret</label>
-                        <input asp-for="NewService.Price" type="number" step="0.01" min="0" />
-                    </div>
-                    <button type="submit" class="cta-btn" style="align-self:flex-start;">Kaydet</button>
+                    <button type="submit" class="btn btn-outline-light w-100">Çıkış Yap</button>
                 </form>
-            </section>
-        </div>
-        <div class="panel-section" data-section="coaches">
-            <section class="admin-card">
-                <h3>Antrenör Listesi</h3>
-                @if (!Model.Coaches.Any())
-                {
-                    <p>Henüz kayıtlı antrenör bulunmuyor.</p>
-                }
-                else
-                {
-                    <div class="coach-list">
-                        @foreach (var coach in Model.Coaches)
+            </aside>
+            <main class="col bg-light">
+                <div class="tab-content py-4 px-3 px-md-5" id="adminTabContent">
+                    <div class="mb-3">
+                        @if (TempData["LoginMessage"] is string loginMessage)
                         {
-                            <div class="coach-card">
-                                <h4>@coach.FullName</h4>
-                                @if (!string.IsNullOrWhiteSpace(coach.Bio))
-                                {
-                                    <p>@coach.Bio</p>
-                                }
-                                <div>
-                                    @if (!string.IsNullOrWhiteSpace(coach.ExpertiseTags))
-                                    {
-                                        foreach (var tag in coach.ExpertiseTags.Split(",", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
-                                        {
-                                            <span class="pill">@tag</span>
-                                        }
-                                    }
+                            <div class="alert alert-success" role="alert">@loginMessage</div>
+                        }
+                        @if (TempData["AdminMessage"] is string adminMessage)
+                        {
+                            <div class="alert alert-info" role="alert">@adminMessage</div>
+                        }
+                    </div>
+
+                    <div class="tab-pane fade show active" id="admin-overview" role="tabpanel" aria-labelledby="overview-tab">
+                        <div class="row g-4">
+                            <div class="col-12 col-xl-5">
+                                <div class="card shadow-sm border-0 h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title d-flex align-items-center gap-2">
+                                            Panel Özeti <span class="badge text-bg-info text-uppercase">Beta</span>
+                                        </h5>
+                                        <p class="text-muted mb-0">Kritik metrikler ve salon kullanımı tek ekranda.</p>
+                                    </div>
                                 </div>
-                                @if (coach.Services.Any())
-                                {
-                                    <div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;">
-                                        @foreach (var service in coach.Services)
+                            </div>
+                            <div class="col-12 col-xl-7">
+                                <div class="card shadow-sm border-0 h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex flex-column flex-lg-row gap-3 align-items-lg-center justify-content-between mb-3">
+                                            <div>
+                                                <p class="text-uppercase text-muted small mb-1">Antrenman Aktivitesi</p>
+                                                <h4 class="mb-0">Salon Kullanım Grafiği</h4>
+                                            </div>
+                                            <div class="d-flex gap-3 flex-wrap">
+                                                <div>
+                                                    <label for="usagePeriodSelect" class="form-label small text-muted mb-1">Zaman Aralığı</label>
+                                                    <select id="usagePeriodSelect" class="form-select form-select-sm">
+                                                        <option value="weekly">7 Gün</option>
+                                                        <option value="monthly" selected>30 Gün</option>
+                                                        <option value="yearly">12 Ay</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label for="usageCategorySelect" class="form-label small text-muted mb-1">Aktivite Türü</label>
+                                                    <select id="usageCategorySelect" class="form-select form-select-sm">
+                                                        <option value="service">Hizmet</option>
+                                                        <option value="coach">Koç</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="usage-chart-wrapper rounded-3 bg-body-tertiary p-3" data-empty="true">
+                                            <canvas id="usageChart" aria-label="Salon kullanım grafiği" role="img"></canvas>
+                                        </div>
+                                        <ul class="list-group list-group-flush mt-3" id="usageSummary">
+                                            <li class="list-group-item">Veri yükleniyor...</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="admin-appointments" role="tabpanel" aria-labelledby="appointments-tab">
+                        <div class="row g-4">
+                            <div class="col-12">
+                                <div class="card shadow-sm border-0">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h5 class="card-title mb-0">Bekleyen Randevu Talepleri</h5>
+                                            <span class="badge text-bg-warning">@Model.PendingAppointments.Count() adet</span>
+                                        </div>
+                                        @if (!Model.PendingAppointments.Any())
                                         {
-                                            <span class="pill">@service</span>
+                                            <p class="text-muted mb-0">Şu anda onay bekleyen talep bulunmuyor.</p>
+                                        }
+                                        else
+                                        {
+                                            <div class="table-responsive">
+                                                <table class="table table-hover align-middle">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>Üye</th>
+                                                            <th>İletişim</th>
+                                                            <th>Tarih / Saat</th>
+                                                            <th>Koç</th>
+                                                            <th>Not</th>
+                                                            <th class="text-end">İşlemler</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var appointment in Model.PendingAppointments)
+                                                        {
+                                                            <tr>
+                                                                <td>@appointment.FullName</td>
+                                                                <td>
+                                                                    <div>@appointment.Email</div>
+                                                                    @if (!string.IsNullOrWhiteSpace(appointment.PhoneNumber))
+                                                                    {
+                                                                        <small class="text-muted">@appointment.PhoneNumber</small>
+                                                                    }
+                                                                </td>
+                                                                <td>
+                                                                    @appointment.Date.ToString("dd MMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("tr-TR"))<br />
+                                                                    <small class="text-muted">@appointment.TimeSlot</small>
+                                                                </td>
+                                                                <td>@appointment.Coach</td>
+                                                                <td>@(string.IsNullOrWhiteSpace(appointment.Notes) ? "-" : appointment.Notes)</td>
+                                                                <td class="text-end">
+                                                                    <div class="btn-group" role="group">
+                                                                        <form asp-action="UpdateAppointmentStatus" method="post" class="d-inline">
+                                                                            @Html.AntiForgeryToken()
+                                                                            <input type="hidden" name="id" value="@appointment.Id" />
+                                                                            <input type="hidden" name="actionType" value="approve" />
+                                                                            <button type="submit" class="btn btn-success btn-sm">Onayla</button>
+                                                                        </form>
+                                                                        <form asp-action="UpdateAppointmentStatus" method="post" class="d-inline">
+                                                                            @Html.AntiForgeryToken()
+                                                                            <input type="hidden" name="id" value="@appointment.Id" />
+                                                                            <input type="hidden" name="actionType" value="reject" />
+                                                                            <button type="submit" class="btn btn-outline-danger btn-sm">Reddet</button>
+                                                                        </form>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         }
                                     </div>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="card shadow-sm border-0">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Son Kararlar</h5>
+                                        @if (!Model.RecentDecisions.Any())
+                                        {
+                                            <p class="text-muted mb-0">Henüz onaylanmış veya reddedilmiş talep yok.</p>
+                                        }
+                                        else
+                                        {
+                                            <div class="table-responsive">
+                                                <table class="table table-sm align-middle">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>Üye</th>
+                                                            <th>Tarih/Saat</th>
+                                                            <th>Koç</th>
+                                                            <th>Durum</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var decision in Model.RecentDecisions)
+                                                        {
+                                                            var statusClass = decision.Status == WebProje.Models.AppointmentStatus.Approved ? "success" : "danger";
+                                                            <tr>
+                                                                <td>@decision.FullName</td>
+                                                                <td>@decision.Date.ToString("dd MMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("tr-TR")) - @decision.TimeSlot</td>
+                                                                <td>@decision.Coach</td>
+                                                                <td><span class="badge text-bg-@statusClass">@decision.Status</span></td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="admin-services" role="tabpanel" aria-labelledby="services-tab">
+                        <div class="row g-4">
+                            <div class="col-12 col-xl-7">
+                                <div class="card shadow-sm border-0 h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h5 class="card-title mb-0">Hizmetler</h5>
+                                            <span class="badge text-bg-secondary">@Model.Services.Count() kayıt</span>
+                                        </div>
+                                        @if (!Model.Services.Any())
+                                        {
+                                            <p class="text-muted mb-0">Henüz kayıtlı hizmet yok.</p>
+                                        }
+                                        else
+                                        {
+                                            <div class="table-responsive">
+                                                <table class="table align-middle">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>Ad</th>
+                                                            <th>Açıklama</th>
+                                                            <th>Süre</th>
+                                                            <th>Ücret</th>
+                                                            <th>İşlemler</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var service in Model.Services)
+                                                        {
+                                                            var collapseId = $"service-edit-{service.Id}";
+                                                            <tr>
+                                                                <td>@service.Name</td>
+                                                                <td>@(string.IsNullOrWhiteSpace(service.Description) ? "-" : service.Description)</td>
+                                                                <td>@(service.DurationMinutes.HasValue ? service.DurationMinutes + " dk" : "-")</td>
+                                                                <td>@(service.Price.HasValue ? service.Price.Value.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("tr-TR")) : "-")</td>
+                                                                <td>
+                                                                    <div class="d-flex flex-column gap-2">
+                                                                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#@collapseId">Düzenle</button>
+                                                                        <form asp-action="DeleteService" method="post" onsubmit="return confirm('Bu hizmeti silmek istediğinize emin misiniz?');" class="d-inline">
+                                                                            @Html.AntiForgeryToken()
+                                                                            <input type="hidden" name="id" value="@service.Id" />
+                                                                            <button type="submit" class="btn btn-sm btn-outline-danger">Sil</button>
+                                                                        </form>
+                                                                    </div>
+                                                                    <div class="collapse mt-2" id="@collapseId">
+                                                                        <div class="border rounded p-3 bg-body-tertiary">
+                                                                            <form asp-action="EditService" method="post" class="row g-3">
+                                                                                @Html.AntiForgeryToken()
+                                                                                <input type="hidden" name="Id" value="@service.Id" />
+                                                                                <div class="col-12">
+                                                                                    <label for="service-name-@service.Id" class="form-label">Ad</label>
+                                                                                    <input id="service-name-@service.Id" name="Name" value="@service.Name" maxlength="128" required class="form-control" />
+                                                                                </div>
+                                                                                <div class="col-12">
+                                                                                    <label for="service-desc-@service.Id" class="form-label">Açıklama</label>
+                                                                                    <textarea id="service-desc-@service.Id" name="Description" rows="2" maxlength="256" class="form-control">@service.Description</textarea>
+                                                                                </div>
+                                                                                <div class="col-md-6">
+                                                                                    <label for="service-duration-@service.Id" class="form-label">Süre (dk)</label>
+                                                                                    <input id="service-duration-@service.Id" name="DurationMinutes" type="number" min="0" max="1440" value="@(service.DurationMinutes?.ToString() ?? string.Empty)" class="form-control" />
+                                                                                </div>
+                                                                                <div class="col-md-6">
+                                                                                    <label for="service-price-@service.Id" class="form-label">Ücret</label>
+                                                                                    <input id="service-price-@service.Id" name="Price" type="number" step="0.01" min="0" value="@(service.Price?.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty)" class="form-control" />
+                                                                                </div>
+                                                                                <div class="col-12">
+                                                                                    <button type="submit" class="btn btn-primary btn-sm">Kaydet</button>
+                                                                                </div>
+                                                                            </form>
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-xl-5">
+                                <div class="card shadow-sm border-0 h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Yeni Hizmet Ekle</h5>
+                                        <form asp-action="AddService" method="post" class="row g-3">
+                                            @Html.AntiForgeryToken()
+                                            <div class="col-12">
+                                                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                                            </div>
+                                            <div class="col-12">
+                                                <label asp-for="NewService.Name" class="form-label"></label>
+                                                <input asp-for="NewService.Name" class="form-control" />
+                                                <span asp-validation-for="NewService.Name" class="text-danger"></span>
+                                            </div>
+                                            <div class="col-12">
+                                                <label asp-for="NewService.Description" class="form-label"></label>
+                                                <textarea asp-for="NewService.Description" rows="2" class="form-control"></textarea>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label asp-for="NewService.DurationMinutes" class="form-label">Süre (dk)</label>
+                                                <input asp-for="NewService.DurationMinutes" type="number" min="0" class="form-control" />
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label asp-for="NewService.Price" class="form-label">Ücret</label>
+                                                <input asp-for="NewService.Price" type="number" step="0.01" min="0" class="form-control" />
+                                            </div>
+                                            <div class="col-12">
+                                                <button type="submit" class="btn btn-primary">Kaydet</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="admin-coaches" role="tabpanel" aria-labelledby="coaches-tab">
+                        <div class="row g-4">
+                            <div class="col-12 col-xl-7">
+                                <div class="card shadow-sm border-0 h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title mb-3">Antrenör Listesi</h5>
+                                        @if (!Model.Coaches.Any())
+                                        {
+                                            <p class="text-muted mb-0">Henüz kayıtlı antrenör bulunmuyor.</p>
+                                        }
+                                        else
+                                        {
+                                            <div class="vstack gap-3">
+                                                @foreach (var coach in Model.Coaches)
+                                                {
+                                                    var coachCollapseId = $"coach-edit-{coach.Id}";
+                                                    <div class="card border-0 shadow-sm">
+                                                        <div class="card-body">
+                                                            <div class="d-flex justify-content-between flex-wrap gap-2">
+                                                                <div>
+                                                                    <h6 class="mb-1">@coach.FullName</h6>
+                                                                    @if (!string.IsNullOrWhiteSpace(coach.Bio))
+                                                                    {
+                                                                        <p class="text-muted mb-1">@coach.Bio</p>
+                                                                    }
+                                                                    <div>
+                                                                        @if (!string.IsNullOrWhiteSpace(coach.ExpertiseTags))
+                                                                        {
+                                                                            foreach (var tag in coach.ExpertiseTags.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                                                                            {
+                                                                                <span class="badge text-bg-light me-1 mb-1">@tag</span>
+                                                                            }
+                                                                        }
+                                                                    </div>
+                                                                    <div class="mt-2">
+                                                                        @if (coach.Services.Any())
+                                                                        {
+                                                                            foreach (var service in coach.Services)
+                                                                            {
+                                                                                <span class="coach-service-pill">@service</span>
+                                                                            }
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <small class="text-muted">Hizmet atanmamış.</small>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+                                                                <div class="text-end">
+                                                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#@coachCollapseId">Düzenle</button>
+                                                                    <form asp-action="DeleteCoach" method="post" onsubmit="return confirm('Bu antrenörü silmek istediğinize emin misiniz?');" class="d-inline">
+                                                                        @Html.AntiForgeryToken()
+                                                                        <input type="hidden" name="id" value="@coach.Id" />
+                                                                        <button type="submit" class="btn btn-sm btn-outline-danger">Sil</button>
+                                                                    </form>
+                                                                </div>
+                                                            </div>
+                                                            <div class="collapse mt-3" id="@coachCollapseId">
+                                                                <div class="border rounded p-3 bg-body-tertiary">
+                                                                    <form asp-action="EditCoach" method="post" class="row g-3">
+                                                                        @Html.AntiForgeryToken()
+                                                                        <input type="hidden" name="Id" value="@coach.Id" />
+                                                                        <div class="col-12">
+                                                                            <label class="form-label">Ad Soyad</label>
+                                                                            <input type="text" name="FullName" value="@coach.FullName" maxlength="128" required class="form-control" />
+                                                                        </div>
+                                                                        <div class="col-12">
+                                                                            <label class="form-label">Uzmanlık Etiketleri</label>
+                                                                            <textarea name="ExpertiseTags" rows="2" class="form-control">@coach.ExpertiseTags</textarea>
+                                                                        </div>
+                                                                        <div class="col-12">
+                                                                            <label class="form-label">Hizmetler</label>
+                                                                            @if (Model.Services.Any())
+                                                                            {
+                                                                                <div class="row row-cols-1 row-cols-sm-2 g-2">
+                                                                                    @foreach (var service in Model.Services)
+                                                                                    {
+                                                                                        var isChecked = coach.ServiceIds.Contains(service.Id);
+                                                                                        <div class="col">
+                                                                                            <div class="form-check">
+                                                                                                <input class="form-check-input" type="checkbox" name="ServiceIds" value="@service.Id" @(isChecked ? "checked" : null) id="coach-@coach.Id-service-@service.Id" />
+                                                                                                <label class="form-check-label" for="coach-@coach.Id-service-@service.Id">@service.Name</label>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    }
+                                                                                </div>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <div class="alert alert-warning mb-0">Önce hizmet ekleyin.</div>
+                                                                            }
+                                                                        </div>
+                                                                        <div class="col-12">
+                                                                            <label class="form-label">Biyografi</label>
+                                                                            <textarea name="Bio" rows="3" class="form-control">@coach.Bio</textarea>
+                                                                        </div>
+                                                                        <div class="col-12">
+                                                                            <button type="submit" class="btn btn-primary btn-sm">Güncelle</button>
+                                                                        </div>
+                                                                    </form>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-xl-5">
+                                <div class="card shadow-sm border-0 h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Yeni Antrenör Ekle</h5>
+                                        <p class="text-muted small">Uzmanlık alanlarını virgülle veya satır satır yazabilirsiniz.</p>
+                                        <form asp-action="AddCoach" method="post" class="row g-3">
+                                            @Html.AntiForgeryToken()
+                                            <div class="col-12">
+                                                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                                            </div>
+                                            <div class="col-12">
+                                                <label asp-for="NewCoach.FullName" class="form-label"></label>
+                                                <input asp-for="NewCoach.FullName" class="form-control" />
+                                                <span asp-validation-for="NewCoach.FullName" class="text-danger"></span>
+                                            </div>
+                                            <div class="col-12">
+                                                <label asp-for="NewCoach.ExpertiseTags" class="form-label">Uzmanlık Etiketleri</label>
+                                                <textarea asp-for="NewCoach.ExpertiseTags" rows="2" class="form-control"></textarea>
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label">Hizmetler</label>
+                                                @if (Model.Services.Any())
+                                                {
+                                                    <div class="row row-cols-1 row-cols-sm-2 g-2">
+                                                        @foreach (var service in Model.Services)
+                                                        {
+                                                            var isChecked = Model.NewCoach.ServiceIds?.Contains(service.Id) ?? false;
+                                                            <div class="col">
+                                                                <div class="form-check">
+                                                                    <input class="form-check-input" type="checkbox" name="NewCoach.ServiceIds" value="@service.Id" @(isChecked ? "checked" : null) id="newcoach-service-@service.Id" />
+                                                                    <label class="form-check-label" for="newcoach-service-@service.Id">@service.Name</label>
+                                                                </div>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="alert alert-warning mb-0">Önce hizmet ekleyin.</div>
+                                                }
+                                            </div>
+                                            <div class="col-12">
+                                                <label asp-for="NewCoach.Bio" class="form-label">Kısa Biyografi</label>
+                                                <textarea asp-for="NewCoach.Bio" rows="3" class="form-control"></textarea>
+                                            </div>
+                                            <div class="col-12">
+                                                <button type="submit" class="btn btn-primary">Kaydet</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="admin-coach-api" role="tabpanel" aria-labelledby="api-tab">
+                        <div class="row g-4">
+                            <div class="col-12 col-xl-6">
+                                <div class="card shadow-sm border-0 h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">REST API · Antrenör Arşivi</h5>
+                                        <p class="text-muted">Bu sayfa doğrudan <code>/api/coaches</code> ve <code>/api/coaches/available</code> uçlarıyla konuşur.</p>
+                                        <div class="row g-3">
+                                            <div class="col-md-4">
+                                                <label for="apiDateInput" class="form-label">Tarih</label>
+                                                <input type="date" id="apiDateInput" class="form-control" />
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="apiTimeSlotSelect" class="form-label">Saat</label>
+                                                <select id="apiTimeSlotSelect" class="form-select">
+                                                    @foreach (var slot in WebProje.Models.BookingTimeSlots.All)
+                                                    {
+                                                        <option value="@slot">@slot</option>
+                                                    }
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="apiServiceSelect" class="form-label">Hizmet</label>
+                                                <select id="apiServiceSelect" class="form-select" @(Model.Services.Any() ? null : "disabled")>
+                                                    @if (Model.Services.Any())
+                                                    {
+                                                        foreach (var service in Model.Services)
+                                                        {
+                                                            var durationText = service.DurationMinutes is null ? string.Empty : $" ({service.DurationMinutes} dk)";
+                                                            <option value="@service.Id">@service.Name@durationText</option>
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        <option value="">Önce hizmet ekleyin</option>
+                                                    }
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex flex-wrap gap-2 mt-3">
+                                            <button type="button" class="btn btn-primary" id="apiFetchAll">Tüm Antrenörleri Getir</button>
+                                            <button type="button" class="btn btn-outline-primary" id="apiFetchAvailable" @(Model.Services.Any() ? null : "disabled")>Bu Tarihte Müsait Olanları Listele</button>
+                                        </div>
+                                        <small class="text-muted d-block mt-2">Örnek istek: /api/coaches/available?date=2025-12-09&amp;timeSlot=10:00&amp;serviceId=1</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-xl-6">
+                                <div class="card shadow-sm border-0 h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">API Yanıtı</h5>
+                                        <div id="apiCoachStatus" class="alert alert-secondary" role="status" data-tone="muted">Henüz istek yapılmadı.</div>
+                                        <div class="table-responsive">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Ad</th>
+                                                        <th>Uzmanlık</th>
+                                                        <th>Hizmetler</th>
+                                                        <th>Not</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="apiCoachTableBody">
+                                                    <tr>
+                                                        <td colspan="4" class="text-center text-muted">Veri bekleniyor.</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="admin-schedule" role="tabpanel" aria-labelledby="schedule-tab">
+                        <div class="card shadow-sm border-0">
+                            <div class="card-body">
+                                <h5 class="card-title">Müsaitlik Takvimi</h5>
+                                <p class="text-muted">Genel takvimi görüntüleyin, ardından koç seçerek yalnızca o koçun randevularını inceleyin.</p>
+                                @{
+                                    var culture = System.Globalization.CultureInfo.GetCultureInfo("tr-TR");
+                                    var now = DateTime.Today;
+                                    var monthStart = new DateOnly(now.Year, now.Month, 1);
+                                    var daysInMonth = DateTime.DaysInMonth(monthStart.Year, monthStart.Month);
+                                    var firstDayOffset = ((int)monthStart.DayOfWeek + 6) % 7;
+                                    var totalCells = (int)Math.Ceiling((firstDayOffset + daysInMonth) / 7.0) * 7;
+                                    var todayIso = DateOnly.FromDateTime(now).ToString("yyyy-MM-dd");
+                                }
+                                @if (!Model.CoachSchedules.Any())
+                                {
+                                    <div class="alert alert-warning mb-0">Henüz kayıtlı antrenör veya randevu bulunamadı.</div>
                                 }
                                 else
                                 {
-                                    <small>Hizmet atanmamış.</small>
-                                }
-                            </div>
-                            <div class="coach-actions">
-                                <details class="coach-edit">
-                                    <summary>Bilgileri Güncelle</summary>
-                                    <form asp-action="EditCoach" method="post" class="admin-form">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="Id" value="@coach.Id" />
-                                        <div>
-                                            <label>Ad Soyad</label>
-                                            <input type="text" name="FullName" value="@coach.FullName" maxlength="128" required />
+                                    <div class="row g-3 align-items-center mb-3">
+                                        <div class="col-md-4">
+                                            <label for="coachCalendarSelect" class="form-label">Koç Seçin</label>
+                                            <select id="coachCalendarSelect" class="form-select">
+                                                <option value="all" selected>Tüm Koçlar</option>
+                                                @foreach (var coach in Model.CoachSchedules)
+                                                {
+                                                    <option value="@coach.Coach">@coach.Coach</option>
+                                                }
+                                            </select>
                                         </div>
-                                        <div>
-                                            <label>Uzmanlık Etiketleri</label>
-                                            <textarea name="ExpertiseTags" rows="2">@coach.ExpertiseTags</textarea>
+                                        <div class="col-md-4">
+                                            <p class="mb-0 fw-semibold" id="calendarCoachLabel">Tüm Koçlar</p>
+                                            <small class="text-muted">Güncel görünüm</small>
                                         </div>
-                                        <div>
-                                            <label>Hizmetler</label>
-                                            @if (Model.Services.Any())
+                                        <div class="col-md-4 text-md-end">
+                                            <strong id="calendarMonthTitle">@monthStart.ToString("MMMM yyyy", culture)</strong>
+                                            <div class="text-muted" id="calendarSummary"></div>
+                                        </div>
+                                    </div>
+                                    <div class="calendar-grid" id="calendarGrid"></div>
+                                    var schedulePayload = JsonSerializer.Serialize(
+                                        Model.CoachSchedules.Select(cs => new
+                                        {
+                                            coach = cs.Coach,
+                                            slots = cs.Slots.Select(slot => new
                                             {
-                                                <div class="service-radio-list">
-                                                    @foreach (var service in Model.Services)
-                                                    {
-                                                        var isChecked = coach.ServiceIds.Contains(service.Id);
-                                                        <label class="service-option">
-                                                            <input type="checkbox" name="ServiceIds" value="@service.Id" @(isChecked ? "checked" : null) />
-                                                            <span>@service.Name</span>
-                                                        </label>
-                                                    }
-                                                </div>
-                                            }
-                                            else
-                                            {
-                                                <small>Önce hizmet ekleyin.</small>
-                                            }
-                                        </div>
-                                        <div>
-                                            <label>Biyografi</label>
-                                            <textarea name="Bio" rows="3">@coach.Bio</textarea>
-                                        </div>
-                                        <button type="submit" class="cta-btn" style="align-self:flex-start;">Güncelle</button>
-                                    </form>
-                                </details>
-                                <form asp-action="DeleteCoach" method="post" onsubmit="return confirm('Bu antrenörü silmek istediğinize emin misiniz?');">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="id" value="@coach.Id" />
-                                    <button type="submit" class="danger-btn">Sil</button>
-                                </form>
-                            </div>
-                        }
-                    </div>
-                }
-            </section>
-            <section class="admin-card">
-                <h3>Yeni Antrenör Ekle</h3>
-                <p>Uzmanlık alanlarını virgülle veya satır satır yazabilirsiniz.</p>
-                <form asp-action="AddCoach" method="post" class="admin-form">
-                    @Html.AntiForgeryToken()
-                    <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
-                    <div>
-                        <label asp-for="NewCoach.FullName"></label>
-                        <input asp-for="NewCoach.FullName" />
-                        <span asp-validation-for="NewCoach.FullName" class="text-danger"></span>
-                    </div>
-                    <div>
-                        <label asp-for="NewCoach.ExpertiseTags">Uzmanlık Etiketleri</label>
-                        <textarea asp-for="NewCoach.ExpertiseTags" rows="2"></textarea>
-                    </div>
-                    <div>
-                        <label>Hizmetler</label>
-                        @if (Model.Services.Any())
-                        {
-                            <div class="service-radio-list">
-                                @foreach (var service in Model.Services)
-                                {
-                                    var isChecked = Model.NewCoach.ServiceIds?.Contains(service.Id) ?? false;
-                                    <label class="service-option">
-                                        <input type="checkbox" name="NewCoach.ServiceIds" value="@service.Id" @(isChecked ? "checked" : null) />
-                                        <span>@service.Name</span>
-                                    </label>
-                                }
-                            </div>
-                        }
-                        else
-                        {
-                            <select disabled>
-                                <option>Önce hizmet ekleyin</option>
-                            </select>
-                        }
-                    </div>
-                    <div>
-                        <label asp-for="NewCoach.Bio">Kısa Biyografi</label>
-                        <textarea asp-for="NewCoach.Bio" rows="3"></textarea>
-                    </div>
-                    <button type="submit" class="cta-btn" style="align-self:flex-start;">Kaydet</button>
-                </form>
-            </section>
-        </div>
-        <div class="panel-section" data-section="coach-api">
-            <section class="admin-card">
-                <h3>REST API · Antrenör Arşivi</h3>
-                <p>Bu sayfa doğrudan <code>/api/coaches</code> ve <code>/api/coaches/available</code> uçlarıyla konuşur. LINQ ile süzülen JSON sonuçlarını görselleştirir.</p>
-                <div class="api-toolbar">
-                    <div>
-                        <label for="apiDateInput">Tarih</label>
-                        <input type="date" id="apiDateInput" />
-                    </div>
-                    <div>
-                        <label for="apiTimeSlotSelect">Saat</label>
-                        <select id="apiTimeSlotSelect">
-                            @foreach (var slot in Model.BookingTimeSlots)
-                            {
-                                <option value="@slot">@slot</option>
-                            }
-                        </select>
-                    </div>
-                    <div>
-                        <label for="apiServiceSelect">Hizmet</label>
-                        <select id="apiServiceSelect" @(Model.Services.Any() ? null : "disabled")>
-                            @if (Model.Services.Any())
-                            {
-                                foreach (var service in Model.Services)
-                                {
-                                    var durationText = service.DurationMinutes is null ? "" : $" ({service.DurationMinutes} dk)";
-                                    <option value="@service.Id">@service.Name@durationText</option>
-                                }
-                            }
-                            else
-                            {
-                                <option value="">Önce hizmet ekleyin</option>
-                            }
-                        </select>
-                    </div>
-                </div>
-                <div class="api-actions">
-                    <button type="button" class="cta-btn" id="apiFetchAll">Tüm Antrenörleri Getir</button>
-                    <button type="button" class="cta-btn ghost" id="apiFetchAvailable" @(Model.Services.Any() ? null : "disabled")>Bu Tarihte Müsait Olanları Listele</button>
-                </div>
-                <small>Örnek istek: <code>/api/coaches/available?date=2025-12-09&amp;timeSlot=10:00&amp;serviceId=1</code></small>
-            </section>
-            <section class="admin-card">
-                <h3>API Yanıtı</h3>
-                <div id="apiCoachStatus" class="api-status" data-tone="muted">Henüz istek yapılmadı.</div>
-                <div class="api-table-wrapper">
-                    <table class="admin-table">
-                        <thead>
-                            <tr>
-                                <th>Ad</th>
-                                <th>Uzmanlık</th>
-                                <th>Hizmetler</th>
-                                <th>Not</th>
-                            </tr>
-                        </thead>
-                        <tbody id="apiCoachTableBody">
-                            <tr class="empty-state">
-                                <td colspan="4">Veri bekleniyor.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </div>
-        <div class="panel-section" data-section="schedule">
-            <section class="admin-card">
-                <h3>Müsaitlik Takvimi</h3>
-                <p>Önce genel takvimi görün, ardından koç seçerek yalnızca onun randevularını inceleyin. Dolu günlerde randevu saatleri ve hizmet bilgisi listelenir.</p>
-                @{
-                    var culture = System.Globalization.CultureInfo.GetCultureInfo("tr-TR");
-                    var now = DateTime.Today;
-                    var monthStart = new DateOnly(now.Year, now.Month, 1);
-                    var daysInMonth = DateTime.DaysInMonth(monthStart.Year, monthStart.Month);
-                    var firstDayOffset = ((int)monthStart.DayOfWeek + 6) % 7;
-                    var totalCells = firstDayOffset + daysInMonth;
-                    var weeks = (int)Math.Ceiling(totalCells / 7.0);
-                    var todayIso = DateOnly.FromDateTime(now).ToString("yyyy-MM-dd");
-                }
-                @if (!Model.CoachSchedules.Any())
-                {
-                    <p>Henüz kayıtlı antrenör veya randevu bulunamadı.</p>
-                }
-                else
-                {
-                    <div class="calendar-controls">
-                        <label for="coachCalendarSelect">Koç seçin:</label>
-                        <select id="coachCalendarSelect">
-                            <option value="all" selected>Tüm Koçlar</option>
-                            @foreach (var coach in Model.CoachSchedules)
-                            {
-                                <option value="@coach.Coach">@coach.Coach</option>
-                            }
-                        </select>
-                        <span id="calendarCoachLabel">Tüm Koçlar</span>
-                    </div>
-                    <div class="calendar-header">
-                        <strong id="calendarMonthTitle">@monthStart.ToString("MMMM yyyy", culture)</strong>
-                        <span id="calendarSummary">Takvim yükleniyor...</span>
-                    </div>
-                    <div class="calendar-grid" id="calendarGrid"></div>
-                    var schedulePayload = JsonSerializer.Serialize(
-                        Model.CoachSchedules.Select(cs => new
-                        {
-                            coach = cs.Coach,
-                            slots = cs.Slots.Select(slot => new
-                            {
-                                date = slot.Date.ToString("yyyy-MM-dd"),
-                                time = slot.TimeSlot,
-                                coach = cs.Coach,
-                                service = slot.Service
-                            })
-                        }),
-                        new JsonSerializerOptions
-                        {
-                            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-                        });
-                    <script type="application/json" id="coachScheduleData">@Html.Raw(schedulePayload)</script>
-                    <script>
-                        (() => {
-                            const dataElement = document.getElementById('coachScheduleData');
-                            if (!dataElement) { return; }
-                            const scheduleData = JSON.parse(dataElement.textContent || '[]');
-                            const select = document.getElementById('coachCalendarSelect');
-                            const grid = document.getElementById('calendarGrid');
-                            const summary = document.getElementById('calendarSummary');
-                            const coachLabel = document.getElementById('calendarCoachLabel');
-                            const monthTitle = document.getElementById('calendarMonthTitle');
-                            const config = {
-                                monthPrefix: '@monthStart.ToString("yyyy-MM")',
-                                firstDayOffset: @firstDayOffset,
-                                daysInMonth: @daysInMonth,
-                                totalCells: @weeks * 7,
-                                monthLabel: '@monthStart.ToString("MMMM yyyy", culture)',
-                                todayIso: '@todayIso'
-                            };
-                            monthTitle.textContent = config.monthLabel;
-
-                            const getSlots = (coach) => {
-                                if (!coach || coach === 'all')
-                                {
-                                    return scheduleData.flatMap(item => item.slots || []);
-                                }
-                                const match = scheduleData.find(item => item.coach === coach);
-                                return match ? (match.slots || []) : [];
-                            };
-
-                            const buildCalendar = (slots) => {
-                                const filtered = slots.filter(slot => slot.date && slot.date.startsWith(config.monthPrefix));
-                                const map = filtered.reduce((acc, slot) => {
-                                    acc[slot.date] = acc[slot.date] || [];
-                                    acc[slot.date].push(slot);
-                                    return acc;
-                                }, {});
-                                const busyDays = Object.keys(map).length;
-                                summary.textContent = busyDays > 0 ? `${busyDays} gün dolu` : 'Tüm günler müsait';
-                                grid.innerHTML = '';
-                                for (let cell = 0; cell < config.totalCells; cell++)
-                                {
-                                    const dayNumber = cell - config.firstDayOffset + 1;
-                                    const cellDiv = document.createElement('div');
-                                    if (dayNumber < 1 || dayNumber > config.daysInMonth)
-                                    {
-                                        cellDiv.className = 'calendar-day empty';
-                                        grid.appendChild(cellDiv);
-                                        continue;
-                                    }
-                                    const dateKey = `${config.monthPrefix}-${String(dayNumber).padStart(2, '0')}`;
-                                    const daySlots = map[dateKey] || [];
-                                    const isBusy = daySlots.length > 0;
-                                    const isPast = dateKey < config.todayIso;
-                                    const classes = ['calendar-day'];
-                                    classes.push(isBusy ? 'booked' : 'available');
-                                    if (isPast) {
-                                        classes.push('past');
-                                    }
-                                    cellDiv.className = classes.join(' ');
-                                    const dayLabel = document.createElement('span');
-                                    dayLabel.className = 'day-number';
-                                    dayLabel.textContent = dayNumber.toString();
-                                    cellDiv.appendChild(dayLabel);
-                                    if (isBusy)
-                                    {
-                                        const list = document.createElement('ul');
-                                        daySlots.sort((a, b) => (a.time || '').localeCompare(b.time || '', 'tr-TR', { numeric: true }));
-                                        daySlots.forEach(slot => {
-                                            const item = document.createElement('li');
-                                            item.textContent = `${slot.time ?? ''} · ${slot.coach ?? ''} (${slot.service ?? ''})`;
-                                            list.appendChild(item);
+                                                date = slot.Date.ToString("yyyy-MM-dd"),
+                                                time = slot.TimeSlot,
+                                                coach = cs.Coach,
+                                                service = slot.Service
+                                            })
+                                        }),
+                                        new JsonSerializerOptions
+                                        {
+                                            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
                                         });
-                                        cellDiv.appendChild(list);
-                                    }
-                                    else
-                                    {
-                                        // intentionally leave empty for cleaner UI
-                                    }
-                                    grid.appendChild(cellDiv);
+                                    <script
+                                        type="application/json"
+                                        id="coachScheduleData"
+                                        data-month-prefix="@monthStart.ToString("yyyy-MM")"
+                                        data-first-day-offset="@firstDayOffset"
+                                        data-days-in-month="@daysInMonth"
+                                        data-total-cells="@totalCells"
+                                        data-month-label="@monthStart.ToString("MMMM yyyy", culture)"
+                                        data-today-iso="@todayIso">
+                                        @Html.Raw(schedulePayload)
+                                    </script>
                                 }
-                            };
+                            </div>
+                        </div>
+                    </div>
 
-                            const updateCalendar = () => {
-                                const selectedCoach = select.value;
-                                coachLabel.textContent = selectedCoach === 'all' ? 'Tüm Koçlar' : selectedCoach;
-                                const slots = getSlots(selectedCoach);
-                                buildCalendar(slots);
-                            };
-
-                            select.addEventListener('change', updateCalendar);
-                            updateCalendar();
-                        })();
-                    </script>
-                }
-            </section>
-
+                    <div class="tab-pane fade" id="admin-gym" role="tabpanel" aria-labelledby="gym-tab">
+                        <div class="card shadow-sm border-0">
+                            <div class="card-body">
+                                <h5 class="card-title">Spor Salonu Bilgileri</h5>
+                                <p class="text-muted">Çalışma saatleri, iletişim ve tanıtım bilgilerini güncel tutun.</p>
+                                <form asp-action="UpdateGymInfo" method="post" class="row g-3" novalidate>
+                                    @Html.AntiForgeryToken()
+                                    <div class="col-12">
+                                        <div asp-validation-summary="ModelOnly" class="text-danger" data-valmsg-summary="true"></div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="GymInfo.Name" class="form-label"></label>
+                                        <input asp-for="GymInfo.Name" class="form-control" />
+                                        <span asp-validation-for="GymInfo.Name" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="GymInfo.Phone" class="form-label"></label>
+                                        <input asp-for="GymInfo.Phone" class="form-control" />
+                                        <span asp-validation-for="GymInfo.Phone" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-12">
+                                        <label asp-for="GymInfo.Address" class="form-label"></label>
+                                        <textarea asp-for="GymInfo.Address" rows="2" class="form-control"></textarea>
+                                        <span asp-validation-for="GymInfo.Address" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="GymInfo.Email" class="form-label"></label>
+                                        <input asp-for="GymInfo.Email" class="form-control" />
+                                        <span asp-validation-for="GymInfo.Email" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="GymInfo.Website" class="form-label"></label>
+                                        <input asp-for="GymInfo.Website" class="form-control" />
+                                        <span asp-validation-for="GymInfo.Website" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="GymInfo.WeekdayHours" class="form-label"></label>
+                                        <input asp-for="GymInfo.WeekdayHours" class="form-control" />
+                                        <span asp-validation-for="GymInfo.WeekdayHours" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="GymInfo.WeekendHours" class="form-label"></label>
+                                        <input asp-for="GymInfo.WeekendHours" class="form-control" />
+                                        <span asp-validation-for="GymInfo.WeekendHours" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-12">
+                                        <label asp-for="GymInfo.About" class="form-label"></label>
+                                        <textarea asp-for="GymInfo.About" rows="3" class="form-control"></textarea>
+                                        <span asp-validation-for="GymInfo.About" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-12">
+                                        <label asp-for="GymInfo.Facilities" class="form-label"></label>
+                                        <textarea asp-for="GymInfo.Facilities" rows="3" class="form-control"></textarea>
+                                        <span asp-validation-for="GymInfo.Facilities" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-12">
+                                        <button type="submit" class="btn btn-primary">Bilgileri Kaydet</button>
+                                    </div>
+                                </form>
+                                @if (Model.GymInfo?.UpdatedAtUtc is DateTime lastUpdate)
+                                {
+                                    <small class="text-muted">Son güncelleme: @lastUpdate.ToLocalTime().ToString("dd MMM yyyy HH:mm", System.Globalization.CultureInfo.GetCultureInfo("tr-TR"))</small>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>
-    </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
     <script>
         (() => {
-            const buttons = document.querySelectorAll('.sidebar-nav button[data-target]');
-            const sections = document.querySelectorAll('.panel-section');
+            const rawMetrics = @Html.Raw(JsonSerializer.Serialize(Model.BookingUsageMetrics));
+            const metrics = Array.isArray(rawMetrics) ? rawMetrics : [];
+            const ctx = document.getElementById('usageChart');
+            const categorySelect = document.getElementById('usageCategorySelect');
+            const periodSelect = document.getElementById('usagePeriodSelect');
+            const summaryList = document.getElementById('usageSummary');
+            const wrapper = document.querySelector('.usage-chart-wrapper');
 
-            const activate = (target) => {
-                if (!target) {
+            if (!ctx || !categorySelect || !periodSelect) {
+                return;
+            }
+
+            const linePalette = [
+                { border: '#0ea5e9', background: 'rgba(14,165,233,0.15)' },
+                { border: '#22c55e', background: 'rgba(34,197,94,0.15)' },
+                { border: '#f97316', background: 'rgba(249,115,22,0.15)' },
+                { border: '#a855f7', background: 'rgba(168,85,247,0.15)' },
+                { border: '#6366f1', background: 'rgba(99,102,241,0.15)' },
+                { border: '#ec4899', background: 'rgba(236,72,153,0.15)' }
+            ];
+
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'nearest', intersect: false },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#475569' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0, stepSize: 1, color: '#475569' },
+                            grid: { color: 'rgba(148,163,184,0.35)' }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { color: '#334155', usePointStyle: true }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: context => {
+                                    const name = context.dataset?.label ?? 'Toplam';
+                                    const value = context.parsed?.y ?? 0;
+                                    return `${name}: ${value} randevu`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const buildSummary = (series) => {
+                if (!summaryList) {
                     return;
                 }
-                sections.forEach(section => {
-                    section.classList.toggle('active', section.dataset.section === target);
-                });
-                buttons.forEach(button => {
-                    button.classList.toggle('active', button.dataset.target === target);
+                summaryList.innerHTML = '';
+                if (!series || series.length === 0) {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item text-muted';
+                    li.textContent = 'Bu filtre için veri bulunamadı.';
+                    summaryList.appendChild(li);
+                    return;
+                }
+                series.slice(0, 5).forEach(item => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item d-flex justify-content-between';
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = item.Label;
+                    const countStrong = document.createElement('strong');
+                    countStrong.textContent = `${item.Total}`;
+                    li.appendChild(nameSpan);
+                    li.appendChild(countStrong);
+                    summaryList.appendChild(li);
                 });
             };
 
-            buttons.forEach(button => {
-                button.addEventListener('click', () => activate(button.dataset.target));
-            });
+            const updateChart = () => {
+                const category = categorySelect.value;
+                const period = periodSelect.value;
+                const active = metrics.find(m => m.CategoryType === category && m.Period === period);
+                const labels = active?.Labels ?? [];
+                const series = active?.Series ?? [];
 
-            const defaultTarget = document.querySelector('.sidebar-nav button.active')?.dataset.target
-                ?? sections[0]?.dataset.section;
-            activate(defaultTarget);
+                chart.data.labels = labels;
+                chart.data.datasets = series.map((line, index) => {
+                    const colors = linePalette[index % linePalette.length];
+                    return {
+                        label: line.Label,
+                        data: Array.isArray(line.Points) ? line.Points : [],
+                        borderColor: colors.border,
+                        backgroundColor: colors.background,
+                        pointBorderColor: colors.border,
+                        pointBackgroundColor: '#fff',
+                        pointRadius: 4,
+                        pointHoverRadius: 5,
+                        borderWidth: 3,
+                        tension: 0.35,
+                        fill: false
+                    };
+                });
+
+                chart.update('none');
+                buildSummary(series);
+
+                if (wrapper) {
+                    const hasData = series.some(line => (line.Points ?? []).some(value => value > 0));
+                    wrapper.dataset.empty = hasData ? 'false' : 'true';
+                }
+            };
+
+            categorySelect.addEventListener('change', updateChart);
+            periodSelect.addEventListener('change', updateChart);
+            updateChart();
+        })();
+    </script>
+    <script>
+        (() => {
+            const dataElement = document.getElementById('coachScheduleData');
+            if (!dataElement) { return; }
+            const scheduleData = JSON.parse(dataElement.textContent || '[]');
+            const select = document.getElementById('coachCalendarSelect');
+            const grid = document.getElementById('calendarGrid');
+            const summary = document.getElementById('calendarSummary');
+            const coachLabel = document.getElementById('calendarCoachLabel');
+            const monthTitle = document.getElementById('calendarMonthTitle');
+            const config = {
+                monthPrefix: dataElement.dataset.monthPrefix || '',
+                firstDayOffset: Number(dataElement.dataset.firstDayOffset || 0),
+                daysInMonth: Number(dataElement.dataset.daysInMonth || 0),
+                totalCells: Number(dataElement.dataset.totalCells || 42),
+                monthLabel: dataElement.dataset.monthLabel || '',
+                todayIso: dataElement.dataset.todayIso || ''
+            };
+            if (config.monthLabel) {
+                monthTitle.textContent = config.monthLabel;
+            }
+
+            const getSlots = (coach) => {
+                if (!coach || coach === 'all') {
+                    return scheduleData.flatMap(item => item.slots || []);
+                }
+                const match = scheduleData.find(item => item.coach === coach);
+                return match ? (match.slots || []) : [];
+            };
+
+            const buildCalendar = (slots) => {
+                const filtered = slots.filter(slot => slot.date && slot.date.startsWith(config.monthPrefix));
+                const map = filtered.reduce((acc, slot) => {
+                    acc[slot.date] = acc[slot.date] || [];
+                    acc[slot.date].push(slot);
+                    return acc;
+                }, {});
+                const busyDays = Object.keys(map).length;
+                summary.textContent = busyDays > 0 ? `${busyDays} gün dolu` : 'Tüm günler müsait';
+                grid.innerHTML = '';
+                for (let cell = 0; cell < config.totalCells; cell++) {
+                    const dayNumber = cell - config.firstDayOffset + 1;
+                    const cellDiv = document.createElement('div');
+                    if (dayNumber < 1 || dayNumber > config.daysInMonth) {
+                        cellDiv.className = 'calendar-day empty';
+                        grid.appendChild(cellDiv);
+                        continue;
+                    }
+                    const dateKey = `${config.monthPrefix}-${String(dayNumber).padStart(2, '0')}`;
+                    const daySlots = map[dateKey] || [];
+                    const isBusy = daySlots.length > 0;
+                    const isPast = config.todayIso && dateKey < config.todayIso;
+                    const classes = ['calendar-day'];
+                    classes.push(isBusy ? 'booked' : 'available');
+                    if (isPast) {
+                        classes.push('past');
+                    }
+                    cellDiv.className = classes.join(' ');
+                    const dayLabel = document.createElement('span');
+                    dayLabel.className = 'fw-semibold';
+                    dayLabel.textContent = dayNumber.toString();
+                    cellDiv.appendChild(dayLabel);
+                    if (isBusy) {
+                        const list = document.createElement('ul');
+                        daySlots.sort((a, b) => (a.time || '').localeCompare(b.time || '', 'tr-TR', { numeric: true }));
+                        daySlots.forEach(slot => {
+                            const item = document.createElement('li');
+                            item.textContent = `${slot.time ?? ''} · ${slot.coach ?? ''} (${slot.service ?? ''})`;
+                            list.appendChild(item);
+                        });
+                        cellDiv.appendChild(list);
+                    }
+                    grid.appendChild(cellDiv);
+                }
+            };
+
+            const updateCalendar = () => {
+                if (!select) {
+                    return;
+                }
+                const selectedCoach = select.value;
+                coachLabel.textContent = selectedCoach === 'all' ? 'Tüm Koçlar' : selectedCoach;
+                const slots = getSlots(selectedCoach);
+                buildCalendar(slots);
+            };
+
+            select?.addEventListener('change', updateCalendar);
+            updateCalendar();
         })();
     </script>
     <script>
@@ -1081,70 +1025,33 @@
                 return;
             }
 
-            const getString = (obj, ...keys) => {
-                if (!obj) {
-                    return undefined;
-                }
-                for (const key of keys) {
-                    const value = obj[key];
-                    if (value !== undefined && value !== null && String(value).length > 0) {
-                        return value;
-                    }
-                }
-                return undefined;
-            };
-
-            const getArray = (obj, ...keys) => {
-                if (!obj) {
-                    return [];
-                }
-                for (const key of keys) {
-                    const value = obj[key];
-                    if (Array.isArray(value) && value.length > 0) {
-                        return value;
-                    }
-                }
-                return [];
-            };
-
-            const setStatus = (message, tone = 'muted') => {
-                statusEl.dataset.tone = tone;
+            const setStatus = (message, tone = 'secondary') => {
                 statusEl.textContent = message;
+                statusEl.className = `alert alert-${tone}`;
             };
 
             const renderRows = (rows) => {
                 if (!rows || rows.length === 0) {
-                    tableBody.innerHTML = '<tr class="empty-state"><td colspan="4">Sonuç bulunamadı.</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Sonuç bulunamadı.</td></tr>';
                     return;
                 }
                 const fragment = document.createDocumentFragment();
-                const createCell = (text) => {
-                    const td = document.createElement('td');
-                    td.textContent = text && text.length > 0 ? text : '-';
-                    return td;
-                };
                 rows.forEach(row => {
                     const tr = document.createElement('tr');
-                    const fullName = getString(row, 'fullName', 'FullName');
-                    const expertise = getString(row, 'expertiseTags', 'ExpertiseTags');
-                    const servicesList = getArray(row, 'services', 'Services');
-                    tr.appendChild(createCell(fullName ?? '-'));
-                    tr.appendChild(createCell(expertise ?? '-'));
+                    const fullName = row.fullName ?? row.FullName ?? '-';
+                    const expertise = row.expertiseTags ?? row.ExpertiseTags ?? '-';
+                    const servicesList = Array.isArray(row.services ?? row.Services) ? (row.services ?? row.Services) : [];
                     const services = servicesList.length > 0 ? servicesList.join(', ') : '-';
-                    tr.appendChild(createCell(services));
-                    const requestedDate = getString(row, 'requestedDate', 'RequestedDate');
-                    const requestedSlot = getString(row, 'requestedSlot', 'RequestedSlot');
-                    const bio = getString(row, 'bio', 'Bio');
-                    let detail;
-                    if (requestedDate) {
-                        const duration = row.requestedDurationMinutes ?? row.RequestedDurationMinutes;
-                        const slotLabel = requestedSlot ?? '-';
-                        detail = `${requestedDate} · ${slotLabel}${duration ? ` (${duration} dk)` : ''}`;
-                    }
-                    else {
-                        detail = bio ?? '-';
-                    }
-                    tr.appendChild(createCell(detail));
+                    const requestedDate = row.requestedDate ?? row.RequestedDate;
+                    const requestedSlot = row.requestedSlot ?? row.RequestedSlot;
+                    const duration = row.requestedDurationMinutes ?? row.RequestedDurationMinutes;
+                    const bio = row.bio ?? row.Bio;
+                    const detail = requestedDate ? `${requestedDate} · ${requestedSlot ?? '-'}` + (duration ? ` (${duration} dk)` : '') : (bio ?? '-');
+                    tr.innerHTML = `
+                        <td>${fullName}</td>
+                        <td>${expertise}</td>
+                        <td>${services}</td>
+                        <td>${detail}</td>`;
                     fragment.appendChild(tr);
                 });
                 tableBody.innerHTML = '';
@@ -1152,11 +1059,7 @@
             };
 
             const fetchJson = async (url) => {
-                const response = await fetch(url, {
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
+                const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
                 if (!response.ok) {
                     const payload = await response.text();
                     throw new Error(payload || 'Sunucu isteği başarısız oldu.');
@@ -1174,14 +1077,14 @@
             };
 
             allButton.addEventListener('click', async () => {
-                setStatus('Antrenörler yükleniyor...', 'loading');
+                setStatus('Antrenörler yükleniyor...', 'info');
                 try {
                     const data = await fetchJson('/api/coaches');
                     renderRows(data);
                     setStatus(`${data.length} antrenör listelendi.`, 'success');
                 }
                 catch (error) {
-                    setStatus(error.message, 'error');
+                    setStatus(error.message, 'danger');
                 }
             });
 
@@ -1191,10 +1094,10 @@
                     const slotValue = slotSelect.value;
                     const serviceId = serviceSelect.value;
                     if (!dateValue || !slotValue || !serviceId) {
-                        setStatus('Tarih, saat ve hizmet seçimleri zorunludur.', 'error');
+                        setStatus('Tarih, saat ve hizmet seçimleri zorunludur.', 'danger');
                         return;
                     }
-                    setStatus('Müsait koçlar aranıyor...', 'loading');
+                    setStatus('Müsait koçlar aranıyor...', 'info');
                     const params = new URLSearchParams({
                         date: dateValue,
                         timeSlot: slotValue,
@@ -1203,12 +1106,10 @@
                     try {
                         const data = await fetchJson(`/api/coaches/available?${params.toString()}`);
                         renderRows(data);
-                        setStatus(data.length > 0
-                            ? `${data.length} koç belirtilen aralıkta müsait.`
-                            : 'Bu aralıkta uygun koç yok.', 'success');
+                        setStatus(data.length > 0 ? `${data.length} koç belirtilen aralıkta müsait.` : 'Bu aralıkta uygun koç yok.', 'success');
                     }
                     catch (error) {
-                        setStatus(error.message, 'error');
+                        setStatus(error.message, 'danger');
                     }
                 });
             }

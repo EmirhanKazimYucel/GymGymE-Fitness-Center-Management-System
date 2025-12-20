@@ -198,4 +198,13 @@ C:\Users\t1o4m\Desktop\WebProje\bin\Debug\net9.0\OpenAI.dll
 C:\Users\t1o4m\Desktop\WebProje\bin\Debug\net9.0\System.ClientModel.dll
 C:\Users\t1o4m\Desktop\WebProje\bin\Debug\net9.0\System.Memory.Data.dll
 C:\Users\t1o4m\Desktop\WebProje\bin\Debug\net9.0\System.Net.ServerSentEvents.dll
-C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\compressed\01epimt87x-xu6euvk1ii.gz
+<<<<<<< Updated upstream
+C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\compressed\dsfvw9c5p1-8j5axdwipo.gz
+C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\compressed\onagn42ubb-2siwdjzcn7.gz
+C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\compressed\q7q7iufzu6-ipzrjthrou.gz
+C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\compressed\brrjmoti3z-we38ogfzoo.gz
+C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\compressed\01epimt87x-w5tumg7qpk.gz
+C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\compressed\871l5pdeze-f7z2epulow.gz
+=======
+C:\Users\t1o4m\Desktop\WebProje\obj\Debug\net9.0\compressed\01epimt87x-c5h4jmzlvt.gz
+>>>>>>> Stashed changes

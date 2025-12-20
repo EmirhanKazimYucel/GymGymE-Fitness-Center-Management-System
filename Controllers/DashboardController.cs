@@ -7,11 +7,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebProje.Data;
+using WebProje.Filters;
 using WebProje.Models;
 using WebProje.Services;
 
 namespace WebProje.Controllers;
 
+[RoleAuthorize(RoleNames.User, RoleNames.Admin)]
 public class DashboardController : Controller
 {
     private const string AvatarFolder = "uploads/avatars";
@@ -25,15 +27,31 @@ public class DashboardController : Controller
         "#4caf50"
     };
 
+    private const string FallbackMealCollagePath = "~/images/diet/menu-collage.svg";
+
     private readonly FitnessContext _context;
     private readonly IWebHostEnvironment _environment;
     private readonly IOpenAiDietService _openAiDietService;
+<<<<<<< Updated upstream
+    private readonly IOpenAiImageService _openAiImageService;
+
+    public DashboardController(
+        FitnessContext context,
+        IWebHostEnvironment environment,
+        IOpenAiDietService openAiDietService,
+        IOpenAiImageService openAiImageService)
+=======
 
     public DashboardController(FitnessContext context, IWebHostEnvironment environment, IOpenAiDietService openAiDietService)
+>>>>>>> Stashed changes
     {
         _context = context;
         _environment = environment;
         _openAiDietService = openAiDietService;
+<<<<<<< Updated upstream
+        _openAiImageService = openAiImageService;
+=======
+>>>>>>> Stashed changes
     }
 
     [HttpGet]
@@ -165,9 +183,16 @@ public class DashboardController : Controller
         ApplySidebarContext(user);
         var model = BuildBaselineDietPlan(user);
 
+<<<<<<< Updated upstream
+        DietPlanRequestContext requestContext;
+        try
+        {
+            requestContext = DietPlanRequestContext.FromUser(user, model.BodyMassIndex, model.BmiCategory);
+=======
         try
         {
             var requestContext = DietPlanRequestContext.FromUser(user, model.BodyMassIndex, model.BmiCategory);
+>>>>>>> Stashed changes
             var aiResult = await _openAiDietService.GeneratePlanAsync(requestContext, HttpContext.RequestAborted);
             if (aiResult is not null)
             {
@@ -181,10 +206,45 @@ public class DashboardController : Controller
         catch (OperationCanceledException)
         {
             model.Ai.ErrorMessage = "Yapay zeka isteği iptal edildi, standart plan gösteriliyor.";
+<<<<<<< Updated upstream
+            requestContext = DietPlanRequestContext.FromUser(user, model.BodyMassIndex, model.BmiCategory);
+=======
+>>>>>>> Stashed changes
         }
         catch (Exception)
         {
             model.Ai.ErrorMessage = "Yapay zeka önerisi alınamadı, standart plan gösteriliyor.";
+<<<<<<< Updated upstream
+            requestContext = DietPlanRequestContext.FromUser(user, model.BodyMassIndex, model.BmiCategory);
+        }
+
+        try
+        {
+            var visuals = await _openAiImageService.GenerateMealVisualsAsync(requestContext, model.MealIdeas, HttpContext.RequestAborted);
+            if (visuals.Count > 0)
+            {
+                model.MealVisuals = visuals;
+            }
+            else
+            {
+                model.MealVisualErrorMessage ??= "Yapay zeka görsellerinden yanıt alınamadı; örnek görseller gösteriliyor.";
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            model.MealVisualErrorMessage = "Yapay zeka görsel isteği iptal edildi; örnek görseller gösteriliyor.";
+        }
+        catch (Exception ex)
+        {
+            model.MealVisualErrorMessage = $"Yapay zeka görselleri üretilemedi: {ex.Message}";
+        }
+
+        if (model.MealVisuals.Count == 0)
+        {
+            model.MealVisuals = BuildFallbackVisuals(model.MealIdeas);
+            model.MealVisualErrorMessage ??= "AI servisinden yanıt alınamadığı için örnek görseller gösteriliyor.";
+=======
+>>>>>>> Stashed changes
         }
 
         ViewData["Title"] = "Diyet Planım";
@@ -332,10 +392,30 @@ public class DashboardController : Controller
             HydrationLiters = SuggestHydrationLiters(user.WeightKg),
             FocusTips = BuildFocusTips(category),
             MealIdeas = BuildMealIdeas(category),
+            MealVisuals = Array.Empty<DietMealVisual>(),
+            MealVisualErrorMessage = null,
             Ai = new DietPlanAiMetadata
             {
                 GeneratedByAi = false,
                 Source = "BarbieFit Standart"
+            }
+        };
+    }
+
+    private IReadOnlyList<DietMealVisual> BuildFallbackVisuals(IReadOnlyList<DietMealIdea> meals)
+    {
+        var sourceMeals = meals is { Count: > 0 } ? meals : BuildMealIdeas("Normal");
+        var legend = string.Join(" • ", sourceMeals.Select(m => $"{m.Meal}: {m.Description}"));
+        var fallbackUrl = Url.Content(FallbackMealCollagePath);
+
+        return new[]
+        {
+            new DietMealVisual
+            {
+                Meal = "Günlük Menü",
+                Description = legend,
+                Accent = "#ff80ab",
+                ImageUrl = string.IsNullOrWhiteSpace(fallbackUrl) ? FallbackMealCollagePath : fallbackUrl
             }
         };
     }

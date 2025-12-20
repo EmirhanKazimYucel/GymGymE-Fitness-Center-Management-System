@@ -13,6 +13,8 @@ public class DietPlanViewModel
     public double HydrationLiters { get; set; }
     public IReadOnlyList<string> FocusTips { get; set; } = Array.Empty<string>();
     public IReadOnlyList<DietMealIdea> MealIdeas { get; set; } = Array.Empty<DietMealIdea>();
+    public IReadOnlyList<DietMealVisual> MealVisuals { get; set; } = Array.Empty<DietMealVisual>();
+    public string? MealVisualErrorMessage { get; set; }
     public DietPlanAiMetadata Ai { get; set; } = new();
 }
 
@@ -28,6 +30,15 @@ public class DietMealIdea
     public string Meal { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string Accent { get; set; } = "#ff80ab";
+}
+
+public class DietMealVisual
+{
+    public string Meal { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Accent { get; set; } = "#ff80ab";
+    public string ImageUrl { get; set; } = string.Empty;
+    public string? Prompt { get; set; }
 }
 
 public class DietPlanAiMetadata

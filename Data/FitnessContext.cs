@@ -14,6 +14,11 @@ public class FitnessContext : DbContext
     public DbSet<Coach> Coaches => Set<Coach>();
     public DbSet<Service> Services => Set<Service>();
     public DbSet<CoachService> CoachServices => Set<CoachService>();
+<<<<<<< Updated upstream
+    public DbSet<GymInfo> GymInfos => Set<GymInfo>();
+    public DbSet<GymOpeningHour> GymOpeningHours => Set<GymOpeningHour>();
+=======
+>>>>>>> Stashed changes
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

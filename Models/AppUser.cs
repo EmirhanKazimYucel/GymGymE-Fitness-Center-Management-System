@@ -24,7 +24,7 @@ public class AppUser
     public string PasswordHash { get; set; } = string.Empty;
 
     [Required, MaxLength(32)]
-    public string Role { get; set; } = "User";
+    public string Role { get; set; } = RoleNames.User;
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 

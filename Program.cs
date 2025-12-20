@@ -3,6 +3,10 @@ using System.Linq;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+<<<<<<< Updated upstream
+using WebProje;
+=======
+>>>>>>> Stashed changes
 using WebProje.Configuration;
 using WebProje.Data;
 using WebProje.Models;
@@ -31,6 +35,17 @@ builder.Services.AddHttpClient<IOpenAiDietService, OpenAiDietService>((sp, clien
     var timeoutSeconds = options.TimeoutSeconds <= 0 ? 40 : options.TimeoutSeconds;
     client.Timeout = TimeSpan.FromSeconds(Math.Clamp(timeoutSeconds, 5, 120));
 });
+<<<<<<< Updated upstream
+builder.Services.AddHttpClient<IOpenAiImageService, OpenAiImageService>((sp, client) =>
+{
+    var options = sp.GetRequiredService<IOptions<OpenAiOptions>>().Value;
+    var baseUrl = string.IsNullOrWhiteSpace(options.BaseUrl) ? "https://api.openai.com/v1/" : options.BaseUrl;
+    client.BaseAddress = new Uri(baseUrl, UriKind.Absolute);
+    var timeoutSeconds = options.TimeoutSeconds <= 0 ? 40 : options.TimeoutSeconds;
+    client.Timeout = TimeSpan.FromSeconds(Math.Clamp(timeoutSeconds, 5, 120));
+});
+=======
+>>>>>>> Stashed changes
 
 var app = builder.Build();
 
@@ -42,16 +57,17 @@ using (var scope = app.Services.CreateScope())
 
     var hasher = services.GetRequiredService<IPasswordHasher<AppUser>>();
 
-    if (!context.Users.Any(u => u.Email == "admin@fitapp.com"))
+    const string newAdminEmail = "g231210374@sakarya.edu.tr";
+    if (!context.Users.Any(u => u.Email == newAdminEmail))
     {
         var admin = new AppUser
         {
-            FirstName = "Admin",
-            LastName = "Kullanicisi",
-            Email = "admin@fitapp.com",
-            Role = "Admin"
+            FirstName = "G231210374",
+            LastName = "Admin",
+            Email = newAdminEmail,
+            Role = RoleNames.Admin
         };
-        admin.PasswordHash = hasher.HashPassword(admin, "admin123");
+        admin.PasswordHash = hasher.HashPassword(admin, "sau");
         context.Users.Add(admin);
     }
 
@@ -62,14 +78,14 @@ using (var scope = app.Services.CreateScope())
             FirstName = "Demo",
             LastName = "uye",
             Email = "demo@fitapp.com",
-            Role = "User"
+            Role = RoleNames.User
         };
         demo.PasswordHash = hasher.HashPassword(demo, "demo123");
         context.Users.Add(demo);
     }
 
     context.SaveChanges();
-    }
+}
 
 if (!app.Environment.IsDevelopment())
 {

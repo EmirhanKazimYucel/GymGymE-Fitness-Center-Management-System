@@ -6,10 +6,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebProje.Data;
+using WebProje.Filters;
 using WebProje.Models;
 
 namespace WebProje.Controllers;
 
+[RoleAuthorize(RoleNames.User, RoleNames.Admin)]
 public class AppointmentController : Controller
 {
     private readonly FitnessContext _context;
@@ -82,6 +84,29 @@ public class AppointmentController : Controller
         if (model.SelectedDate < today)
         {
             ModelState.AddModelError(nameof(model.SelectedDate), "Geçmiş tarihler için randevu alınamaz.");
+        }
+
+        if (!model.TimeSlots.Any())
+        {
+            var dateLabel = model.SelectedDate.ToString("dd MMMM");
+            string message = model.GymClosedForSelectedDate
+                ? $"{dateLabel} tarihinde salon kapalı."
+                : model.NoRemainingSlotsForToday
+                    ? $"{dateLabel} için kalan saat bulunmuyor."
+                    : $"{dateLabel} tarihine ait çalışma saatleri tanımlanmadı.";
+            ModelState.AddModelError(nameof(model.SelectedDate), message);
+        }
+        else if (!string.IsNullOrWhiteSpace(model.SelectedTime))
+        {
+            var normalizedTime = model.SelectedTime.Trim();
+            if (!model.TimeSlots.Any(slot => string.Equals(slot, normalizedTime, StringComparison.Ordinal)))
+            {
+                ModelState.AddModelError(nameof(model.SelectedTime), "Seçilen saat bu tarih için uygun değil.");
+            }
+            else
+            {
+                model.SelectedTime = normalizedTime;
+            }
         }
 
         if (!ModelState.IsValid)
@@ -222,7 +247,15 @@ public class AppointmentController : Controller
             model.SelectedCoach = string.Empty;
         }
 
-        model.TimeSlots = BookingTimeSlots.All;
+        var selectedService = model.SelectedServiceId.HasValue
+            ? model.Services.FirstOrDefault(s => s.Id == model.SelectedServiceId.Value)
+            : null;
+
+        var slotDuration = selectedService?.DurationMinutes ?? 60;
+        var slotResult = await BuildTimeSlotsAsync(model.SelectedDate, slotDuration);
+        model.TimeSlots = slotResult.Slots;
+        model.GymClosedForSelectedDate = slotResult.GymClosed;
+        model.NoRemainingSlotsForToday = slotResult.NoFutureSlotsToday;
         model.UserFullName = BuildUserDisplayName(user);
         model.UserEmail = user.Email;
         model.UserPhone = user.PhoneNumber;
@@ -306,5 +339,64 @@ public class AppointmentController : Controller
             .ToDictionaryAsync(x => x.Name, x => x.Duration, StringComparer.OrdinalIgnoreCase);
     }
 
+    private async Task<TimeSlotResult> BuildTimeSlotsAsync(DateOnly date, int durationMinutes)
+    {
+        durationMinutes = NormalizeDuration(durationMinutes);
+
+        var schedule = await _context.GymOpeningHours
+            .AsNoTracking()
+            .FirstOrDefaultAsync(h => h.DayOfWeek == date.DayOfWeek);
+
+        schedule ??= BuildDefaultGymHours(date.DayOfWeek);
+
+        var openTime = schedule.OpenTime;
+        var closeTime = schedule.CloseTime;
+
+        if (schedule.IsClosed || openTime is null || closeTime is null || closeTime <= openTime)
+        {
+            return new TimeSlotResult(Array.Empty<string>(), true, false);
+        }
+
+        var open = openTime.Value;
+        var close = closeTime.Value;
+
+        var slots = new List<string>();
+        var duration = TimeSpan.FromMinutes(durationMinutes);
+        var stepMinutes = durationMinutes <= 45 ? 30 : 60;
+        var step = TimeSpan.FromMinutes(stepMinutes);
+
+        var isToday = date == DateOnly.FromDateTime(DateTime.Today);
+        var now = DateTime.Now.TimeOfDay;
+        var filteredPastSlot = false;
+
+        for (var current = open; current + duration <= close; current += step)
+        {
+            if (isToday && current <= now)
+            {
+                filteredPastSlot = true;
+                continue;
+            }
+
+            slots.Add(current.ToString(@"hh\:mm"));
+        }
+
+        var noFutureSlotsToday = isToday && slots.Count == 0 && filteredPastSlot;
+        return new TimeSlotResult(slots, false, noFutureSlotsToday);
+    }
+
+    private static GymOpeningHour BuildDefaultGymHours(DayOfWeek day)
+    {
+        var weekend = day is DayOfWeek.Saturday or DayOfWeek.Sunday;
+        return new GymOpeningHour
+        {
+            DayOfWeek = day,
+            IsClosed = false,
+            OpenTime = weekend ? new TimeSpan(9, 0, 0) : new TimeSpan(8, 0, 0),
+            CloseTime = weekend ? new TimeSpan(20, 0, 0) : new TimeSpan(22, 0, 0)
+        };
+    }
+
     private sealed record ServiceData(List<ServiceOption> Services, Dictionary<int, List<string>> CoachMap);
+
+    private sealed record TimeSlotResult(IReadOnlyList<string> Slots, bool GymClosed, bool NoFutureSlotsToday);
 }

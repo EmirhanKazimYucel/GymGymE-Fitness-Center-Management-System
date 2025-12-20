@@ -39,4 +39,6 @@ public class AppointmentViewModel
     public IReadOnlyList<ServiceOption> Services { get; set; } = Array.Empty<ServiceOption>();
     public IDictionary<int, IReadOnlyList<string>> ServiceCoachMap { get; set; }
         = new Dictionary<int, IReadOnlyList<string>>();
+    public bool GymClosedForSelectedDate { get; set; }
+    public bool NoRemainingSlotsForToday { get; set; }
 }
